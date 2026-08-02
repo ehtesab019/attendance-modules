@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Public School Attendance System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans pb-20 md:pb-0">
+
+    <!-- Top Header -->
+    <header class="bg-indigo-900 text-white px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-graduation-cap text-yellow-400 text-xl"></i>
+            <span class="font-bold text-base">Smart School</span>
+        </div>
+        <div class="text-xs bg-indigo-800 px-2 py-1 rounded" id="live-clock"></div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="p-4 max-w-4xl mx-auto">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <div id="view-dashboard" class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-800">डैशबोर्ड (Dashboard)</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500">
+                    <p class="text-xs text-gray-500 font-medium">कुल छात्र</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1" id="dash-total-students">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-indigo-500">
+                    <p class="text-xs text-gray-500 font-medium">कुल शिक्षक</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1" id="dash-total-teachers">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
+                    <p class="text-xs text-gray-500 font-medium">आज उपस्थित</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1" id="dash-present">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-red-500">
+                    <p class="text-xs text-gray-500 font-medium">आज अनुपस्थित</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1" id="dash-absent">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. STUDENT MANAGEMENT VIEW -->
+        <div id="view-students" class="hidden space-y-4">
+            <div class="flex justify-between items-center gap-2">
+                <input type="text" id="search-student" onkeyup="filterStudents()" placeholder="छात्र खोजें..." class="px-3 py-2 border rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="openStudentModal()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shadow"><i class="fa-solid fa-plus"></i> Add</button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 border-b">
+                            <th class="p-3">रोल</th>
+                            <th class="p-3">नाम</th>
+                            <th class="p-3">कक्षा</th>
+                            <th class="p-3 text-center">एक्शन</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-table-body" class="divide-y text-gray-700"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. TEACHER MANAGEMENT VIEW -->
+        <div id="view-teachers" class="hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-gray-800">शिक्षक सूची</h3>
+                <button onclick="openTeacherModal()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium shadow"><i class="fa-solid fa-plus"></i> Add Teacher</button>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 border-b">
+                            <th class="p-3">नाम</th>
+                            <th class="p-3">विषय</th>
+                            <th class="p-3 text-center">एक्शन</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacher-table-body" class="divide-y text-gray-700"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. CLASS MANAGEMENT VIEW -->
+        <div id="view-classes" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm space-y-3">
+                <h3 class="text-base font-bold text-gray-800">कक्षा प्रबंधन</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="new-class-name" placeholder="कक्षा नाम (जैसे: 10th)" class="flex-1 border px-3 py-2 rounded-lg text-sm">
+                    <button onclick="addClass()" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm font-medium">जोड़ें</button>
+                </div>
+                <div id="class-list-container" class="flex flex-wrap gap-2 pt-2"></div>
+            </div>
+        </div>
+
+        <!-- 5. ATTENDANCE VIEW -->
+        <div id="view-attendance" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm space-y-3">
+                <label class="block text-xs font-medium text-gray-600">दिनांक चुनें</label>
+                <div class="flex gap-2">
+                    <input type="date" id="attendance-date" class="border px-3 py-2 rounded-lg text-sm flex-1">
+                    <button onclick="loadAttendanceList()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium">लोड करें</button>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 border-b">
+                            <th class="p-3">रोल & नाम</th>
+                            <th class="p-3">स्थिति</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-table-body" class="divide-y text-gray-700"></tbody>
+                </table>
+                <div class="p-3 bg-gray-50 border-t flex justify-end">
+                    <button onclick="saveAttendance()" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow">अटेंडेंस सेव करें</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. REPORTS VIEW -->
+        <div id="view-reports" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm space-y-3">
+                <h3 class="text-base font-bold text-gray-800">रिपोर्ट्स</h3>
+                <button onclick="generateReport()" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium">रिपोर्ट देखें</button>
+                <div id="report-output" class="p-3 border rounded-lg bg-gray-50 text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-2 shadow-lg z-50 text-xs">
+        <button onclick="switchTab('dashboard')" class="tab-link flex flex-col items-center text-indigo-600 font-medium">
+            <i class="fa-solid fa-chart-pie text-lg"></i><span>होम</span>
+        </button>
+        <button onclick="switchTab('students')" class="tab-link flex flex-col items-center text-gray-500">
+            <i class="fa-solid fa-user-graduate text-lg"></i><span>छात्र</span>
+        </button>
+        <button onclick="switchTab('teachers')" class="tab-link flex flex-col items-center text-gray-500">
+            <i class="fa-solid fa-chalkboard-user text-lg"></i><span>शिक्षक</span>
+        </button>
+        <button onclick="switchTab('classes')" class="tab-link flex flex-col items-center text-gray-500">
+            <i class="fa-solid fa-school text-lg"></i><span>कक्षा</span>
+        </button>
+        <button onclick="switchTab('attendance')" class="tab-link flex flex-col items-center text-gray-500">
+            <i class="fa-solid fa-calendar-check text-lg"></i><span>अटेंडेंस</span>
+        </button>
+    </nav>
+
+    <!-- ADD/EDIT STUDENT MODAL -->
+    <div id="student-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-sm w-full p-4 space-y-3 shadow-xl">
+            <h3 id="modal-title" class="text-base font-bold text-gray-800">नया छात्र जोड़ें</h3>
+            <input type="hidden" id="edit-index" value="-1">
+            <input type="text" id="s-name" placeholder="छात्र का नाम" class="w-full border px-3 py-2 rounded-lg text-sm">
+            <input type="text" id="s-roll" placeholder="रोल नंबर" class="w-full border px-3 py-2 rounded-lg text-sm">
+            <input type="text" id="s-class" placeholder="कक्षा (जैसे: 10th)" class="w-full border px-3 py-2 rounded-lg text-sm">
+            <input type="text" id="s-phone" placeholder="मोबाइल नंबर" class="w-full border px-3 py-2 rounded-lg text-sm">
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeStudentModal()" class="px-3 py-1.5 border rounded-lg text-sm text-gray-600">रद्द करें</button>
+                <button onclick="saveStudentData()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium">सेव करें</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD TEACHER MODAL -->
+    <div id="teacher-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-sm w-full p-4 space-y-3 shadow-xl">
+            <h3 class="text-base font-bold text-gray-800">नया शिक्षक जोड़ें</h3>
+            <input type="text" id="t-name" placeholder="शिक्षक का नाम" class="w-full border px-3 py-2 rounded-lg text-sm">
+            <input type="text" id="t-subject" placeholder="विषय" class="w-full border px-3 py-2 rounded-lg text-sm">
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeTeacherModal()" class="px-3 py-1.5 border rounded-lg text-sm text-gray-600">रद्द करें</button>
+                <button onclick="saveTeacherData()" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium">सेव करें</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('hi-IN');
+        }, 1000);
+
+        function switchTab(tabId) {
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-link').forEach(el => {
+                el.classList.remove('text-indigo-600', 'font-medium');
+                el.classList.add('text-gray-500');
+            });
+            event.currentTarget.classList.add('text-indigo-600', 'font-medium');
+            event.currentTarget.classList.remove('text-gray-500');
+
+            if(tabId === 'dashboard') updateDashboard();
+            if(tabId === 'students') renderStudents();
+            if(tabId === 'teachers') renderTeachers();
+            if(tabId === 'classes') renderClasses();
+            if(tabId === 'attendance') {
+                document.getElementById('attendance-date').valueAsDate = new Date();
+                loadAttendanceList();
+            }
+        }
+
+        let students = JSON.parse(localStorage.getItem('smart_school_students')) || [];
+        let teachers = JSON.parse(localStorage.getItem('smart_school_teachers')) || [];
+        let classes = JSON.parse(localStorage.getItem('smart_school_classes')) || ['10th', '12th'];
+        let attendanceRecords = JSON.parse(localStorage.getItem('smart_school_attendance')) || {};
+
+        function openStudentModal(index = -1) {
+            document.getElementById('student-modal').classList.remove('hidden');
+            document.getElementById('edit-index').value = index;
+            if(index > -1) {
+                const s = students[index];
+                document.getElementById('s-name').value = s.name;
+                document.getElementById('s-roll').value = s.roll;
+                document.getElementById('s-class').value = s.className;
+                document.getElementById('s-phone').value = s.phone;
+            } else {
+                document.querySelectorAll('#student-modal input:not([type=hidden])').forEach(i => i.value = '');
+            }
+        }
+        function closeStudentModal() { document.getElementById('student-modal').classList.add('hidden'); }
+
+        function saveStudentData() {
+            const index = parseInt(document.getElementById('edit-index').value);
+            const studentData = {
+                name: document.getElementById('s-name').value,
+                roll: document.getElementById('s-roll').value,
+                className: document.getElementById('s-class').value,
+                phone: document.getElementById('s-phone').value
+            };
+            if(!studentData.name || !studentData.roll) return alert('नाम और रोल नंबर भरें!');
+            if(index > -1) students[index] = studentData; else students.push(studentData);
+            localStorage.setItem('smart_school_students', JSON.stringify(students));
+            closeStudentModal();
+            renderStudents();
+            updateDashboard();
+        }
+
+        function renderStudents(data = students) {
+            const tbody = document.getElementById('student-table-body');
+            tbody.innerHTML = data.length === 0 ? `<tr><td colspan="4" class="p-3 text-center text-gray-500">कोई छात्र नहीं है।</td></tr>` : '';
+            data.forEach((s, i) => {
+                tbody.innerHTML += `<tr><td class="p-3">${s.roll}</td><td class="p-3 font-medium">${s.name}</td><td class="p-3">${s.className}</td><td class="p-3 text-center"><button onclick="deleteStudent(${i})" class="text-red-600"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            });
+        }
+
+        function deleteStudent(i) {
+            if(confirm('हटाना चाहते हैं?')) {
+                students.splice(i, 1);
+                localStorage.setItem('smart_school_students', JSON.stringify(students));
+                renderStudents();
+                updateDashboard();
+            }
+        }
+
+        function filterStudents() {
+            const q = document.getElementById('search-student').value.toLowerCase();
+            renderStudents(students.filter(s => s.name.toLowerCase().includes(q) || s.roll.includes(q)));
+        }
+
+        function openTeacherModal() { document.getElementById('teacher-modal').classList.remove('hidden'); }
+        function closeTeacherModal() { document.getElementById('teacher-modal').classList.add('hidden'); }
+
+        function saveTeacherData() {
+            const t = { name: document.getElementById('t-name').value, subject: document.getElementById('t-subject').value };
+            if(!t.name) return alert('नाम भरें!');
+            teachers.push(t);
+            localStorage.setItem('smart_school_teachers', JSON.stringify(teachers));
+            closeTeacherModal();
+            renderTeachers();
+            updateDashboard();
+        }
+
+        function renderTeachers() {
+            const tbody = document.getElementById('teacher-table-body');
+            tbody.innerHTML = teachers.length === 0 ? `<tr><td colspan="3" class="p-3 text-center text-gray-500">कोई शिक्षक नहीं है।</td></tr>` : '';
+            teachers.forEach((t, i) => {
+                tbody.innerHTML += `<tr><td class="p-3 font-medium">${t.name}</td><td class="p-3">${t.subject}</td><td class="p-3 text-center"><button onclick="teachers.splice(${i},1);localStorage.setItem('smart_school_teachers',JSON.stringify(teachers));renderTeachers();updateDashboard();" class="text-red-600"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            });
+        }
+
+        function addClass() {
+            const c = document.getElementById('new-class-name').value.trim();
+            if(!c || classes.includes(c)) return;
+            classes.push(c);
+            localStorage.setItem('smart_school_classes', JSON.stringify(classes));
+            document.getElementById('new-class-name').value = '';
+            renderClasses();
+        }
+
+        function renderClasses() {
+            document.getElementById('class-list-container').innerHTML = classes.map((c, i) => `<span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs font-medium border">${c} <button onclick="classes.splice(${i},1);localStorage.setItem('smart_school_classes',JSON.stringify(classes));renderClasses();" class="text-red-500 ml-1">✕</button></span>`).join('');
+        }
+
+        function loadAttendanceList() {
+            const dateStr = document.getElementById('attendance-date').value;
+            const tbody = document.getElementById('attendance-table-body');
+            if(students.length === 0) { tbody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-gray-500">पहले छात्र जोड़ें!</td></tr>`; return; }
+            const dayAtt = attendanceRecords[dateStr] || {};
+            tbody.innerHTML = students.map(s => `<tr><td class="p-3"><b>${s.roll}</b> - ${s.name}</td><td class="p-3"><select id="att-${s.roll}" class="border p-1 rounded text-xs"><option value="Present" ${dayAtt[s.roll]?.status==='Present'?'selected':''}>उपस्थित</option><option value="Absent" ${dayAtt[s.roll]?.status==='Absent'?'selected':''}>अनुपस्थित</option></select></td></tr>`).join('');
+        }
+
+        function saveAttendance() {
+            const dateStr = document.getElementById('attendance-date').value;
+            if(!dateStr) return alert('तारीख चुनें!');
+            let dayData = {};
+            students.forEach(s => { dayData[s.roll] = { status: document.getElementById(`att-${s.roll}`).value }; });
+            attendanceRecords[dateStr] = dayData;
+            localStorage.setItem('smart_school_attendance', JSON.stringify(attendanceRecords));
+            alert('अटेंडेंस सेव हो गई!');
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            document.getElementById('dash-total-students').innerText = students.length;
+            document.getElementById('dash-total-teachers').innerText = teachers.length;
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayData = attendanceRecords[todayStr] || {};
+            let p = 0, a = 0;
+            students.forEach(s => { if(todayData[s.roll]?.status === 'Present') p++; else if(todayData[s.roll]) a++; });
+            document.getElementById('dash-present').innerText = p;
+            document.getElementById('dash-absent').innerText = a;
+        }
+
+        function generateReport() {
+            document.getElementById('report-output').innerHTML = `कुल छात्र: ${students.length} | कुल शिक्षक: ${teachers.length}<br>डेटा सुरक्षित है।`;
+        }
+
+        updateDashboard();
+    </script>
+</body>
+</html>
+

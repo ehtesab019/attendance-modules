@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Attendance & Status System</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --gray: #6b7280;
+            --bg: #f3f4f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: #1f2937; margin-bottom: 20px; }
+        
+        .card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            background: var(--gray);
+        }
+
+        .badge.open { background: var(--success); }
+        .badge.closed { background: var(--danger); }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9rem;}
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+
+        .btn-request { background: #f59e0b; margin-top: 8px; }
+        .btn-admin { background: #4f46e5; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 420px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .logs { font-size: 0.85rem; color: #4b5563; max-height: 120px; overflow-y: auto; background: #fff; padding: 8px; border: 1px solid #ddd; }
+        
+        .tab-btn {
+            background: #e5e7eb;
+            color: #374151;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            width: auto;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🏫 स्कूल अटेंडेंस कंट्रोल सिस्टम</h2>
+
+    <!-- Section 1: School Status Block -->
+    <div class="card">
+        <div class="card-header">
+            <span>स्कूल स्टेटस (School Status)</span>
+            <span id="statusBadge" class="badge">Not Set</span>
+        </div>
+        <div class="form-group">
+            <select id="schoolStatusSelect">
+                <option value="Open">Open (खूला है)</option>
+                <option value="Closed">Closed (बंद है)</option>
+            </select>
+        </div>
+        <button id="saveStatusBtn" onclick="updateSchoolStatus()">स्टेटस सेट करें</button>
+        <button id="reqStatusLimitBtn" class="btn-request" style="display:none;" onclick="openReqModal('Status')">चांस (Limit) बढ़ाने की रिक्वेस्ट भेजें</button>
+        <p id="statusInfo" style="font-size: 0.8rem; color: var(--gray); margin-top: 5px;"></p>
+    </div>
+
+    <!-- Section 2: Attendance Block -->
+    <div class="card">
+        <div class="card-header">
+            <span>टीचर अटेंडेंस (Daily Attendance)</span>
+            <span id="attendanceChances" style="font-size:0.85rem;">बाकी चांस: 1</span>
+        </div>
+        <div class="form-group">
+            <label>टीचर का नाम:</label>
+            <input type="text" id="teacherName" placeholder="अपना नाम लिखें">
+        </div>
+        <div class="form-group">
+            <label>अटेंडेंस स्टेटस:</label>
+            <select id="attendanceSelect">
+                <option value="Present">Present (उपस्थित)</option>
+                <option value="Absent">Absent (अनुपस्थित)</option>
+            </select>
+        </div>
+        <button id="saveAttendanceBtn" onclick="saveAttendance()">अटेंडेंस सबमिट/एडिट करें</button>
+        <button id="reqAttLimitBtn" class="btn-request" style="display:none;" onclick="openReqModal('Attendance')">चांस बढ़ाने की रिक्वेस्ट भेजें</button>
+    </div>
+
+    <!-- Section 3: Admin Override Panel Button -->
+    <button class="btn-admin" onclick="openAdminModal()">🔑 Head Admin Control Panel</button>
+
+    <!-- Audit Logs -->
+    <div class="card" style="margin-top: 20px;">
+        <div class="card-header">लॉग्स (System Logs)</div>
+        <div class="logs" id="systemLogs">कोई गतिविधि नहीं।</div>
+    </div>
+</div>
+
+<!-- Modal 1: Request Extra Chance -->
+<div id="reqModal" class="modal">
+    <div class="modal-content">
+        <h3>चांस बढ़ाने का कारण दें</h3>
+        <input type="hidden" id="reqType">
+        <div class="form-group">
+            <label>कारण (Reason):</label>
+            <textarea id="reqReason" rows="3" placeholder="वजह बताएं कि चांस क्यों बढ़ाना है..."></textarea>
+        </div>
+        <button onclick="submitPermissionRequest()">सबमिट रिक्वेस्ट</button>
+        <button style="background:var(--gray); margin-top:5px;" onclick="closeModal('reqModal')">रद्द करें</button>
+    </div>
+</div>
+
+<!-- Modal 2: Admin Security & Control Panel -->
+<div id="adminModal" class="modal">
+    <div class="modal-content">
+        <h3>🔑 Head Admin Control Panel</h3>
+        
+        <!-- Admin Auth View -->
+        <div id="adminAuth">
+            <div class="form-group">
+                <label>मास्टर पिन (Master Security PIN):</label>
+                <input type="password" id="adminPin" placeholder="मास्टर कोड दर्ज करें">
+            </div>
+            <button onclick="verifyAdmin()">लॉगिन करें</button>
+            <button style="background:var(--gray); margin-top:5px;" onclick="closeModal('adminModal')">बंद करें</button>
+        </div>
+
+        <!-- Admin Control View -->
+        <div id="adminControls" style="display:none;">
+            <div style="margin-bottom: 15px;">
+                <button class="tab-btn active" id="tabReqBtn" onclick="switchAdminTab('requests')">Requests & Controls</button>
+                <button class="tab-btn" id="tabSetBtn" onclick="switchAdminTab('settings')">⚙️ Settings (Change PIN)</button>
+            </div>
+
+            <!-- TAB 1: Requests & Manual Limit -->
+            <div id="tabRequests">
+                <h4>Pending Requests:</h4>
+                <div id="requestList" style="font-size:0.85rem; margin-bottom:10px;">कोई रिक्वेस्ट पेंडिंग नहीं है।</div>
+                <hr>
+                <h4>मैन्युअल चांस बढ़ाएं (+1 Limit):</h4>
+                <button onclick="grantExtraChance('Status')" style="margin-bottom:5px; background:#8b5cf6;">School Status Limit +1</button>
+                <button onclick="grantExtraChance('Attendance')" style="background:#8b5cf6;">Attendance Edit Limit +1</button>
+            </div>
+
+            <!-- TAB 2: Change Admin PIN Settings -->
+            <div id="tabSettings" style="display:none;">
+                <h4>🔐 एडमिन PIN / पासवर्ड बदलें</h4>
+                <div class="form-group">
+                    <label>वर्तमान PIN (Current PIN):</label>
+                    <input type="password" id="currPinInput" placeholder="पुराना PIN डालें">
+                </div>
+                <div class="form-group">
+                    <label>नया PIN (New PIN):</label>
+                    <input type="password" id="newPinInput" placeholder="नया PIN डालें">
+                </div>
+                <div class="form-group">
+                    <label>नया PIN कन्फर्म करें:</label>
+                    <input type="password" id="confirmPinInput" placeholder="नया PIN दोबारा डालें">
+                </div>
+                <button onclick="changeAdminPin()" style="background:var(--success);">PIN अपडेट करें</button>
+            </div>
+
+            <hr style="margin-top:20px;">
+            <button style="background:var(--gray);" onclick="logoutAdmin()">लॉगआउट</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initial Default PIN
+    const DEFAULT_PIN = "1234";
+
+    let todayDate = new Date().toISOString().split('T')[0];
+
+    let state = {
+        lastDate: todayDate,
+        schoolStatus: null,
+        statusEditsLeft: 1,
+        attEditsLeft: 1,
+        pendingRequests: [],
+        logs: [],
+        adminPin: DEFAULT_PIN
+    };
+
+    // Load State from LocalStorage
+    function initSystem() {
+        let saved = localStorage.getItem('attendance_system_data');
+        if(saved) {
+            let parsed = JSON.parse(saved);
+            if(parsed.lastDate !== todayDate) {
+                state.lastDate = todayDate;
+                state.statusEditsLeft = 1;
+                state.attEditsLeft = 1;
+                state.schoolStatus = parsed.schoolStatus;
+                state.logs = parsed.logs || [];
+                state.adminPin = parsed.adminPin || DEFAULT_PIN;
+                logAction("नया दिन शुरू: लिमिट्स ऑटो-रीसेट कर दी गई हैं।");
+            } else {
+                state = parsed;
+                if(!state.adminPin) state.adminPin = DEFAULT_PIN;
+            }
+        }
+        renderUI();
+    }
+
+    function saveState() {
+        localStorage.setItem('attendance_system_data', JSON.stringify(state));
+        renderUI();
+    }
+
+    function logAction(text) {
+        let time = new Date().toLocaleTimeString();
+        state.logs.unshift(`[${time}] ${text}`);
+        saveState();
+    }
+
+    function renderUI() {
+        // School Status UI
+        let badge = document.getElementById('statusBadge');
+        let statusSelect = document.getElementById('schoolStatusSelect');
+        let saveStatusBtn = document.getElementById('saveStatusBtn');
+        let reqStatusLimitBtn = document.getElementById('reqStatusLimitBtn');
+
+        if(state.schoolStatus) {
+            badge.innerText = state.schoolStatus;
+            badge.className = `badge ${state.schoolStatus.toLowerCase()}`;
+        }
+
+        if(state.statusEditsLeft <= 0) {
+            statusSelect.disabled = true;
+            saveStatusBtn.disabled = true;
+            reqStatusLimitBtn.style.display = "block";
+            document.getElementById('statusInfo').innerText = "🔒 आज का स्टेटस लॉक हो चुका है।";
+        } else {
+            statusSelect.disabled = false;
+            saveStatusBtn.disabled = false;
+            reqStatusLimitBtn.style.display = "none";
+            document.getElementById('statusInfo').innerText = `एडिट उपलब्ध: ${state.statusEditsLeft}`;
+        }
+
+        // Attendance UI
+        let saveAttBtn = document.getElementById('saveAttendanceBtn');
+        let reqAttBtn = document.getElementById('reqAttLimitBtn');
+        document.getElementById('attendanceChances').innerText = `बाकी चांस: ${state.attEditsLeft}`;
+
+        if(state.attEditsLeft <= 0) {
+            saveAttBtn.disabled = true;
+            reqAttBtn.style.display = "block";
+        } else {
+            saveAttBtn.disabled = false;
+            reqAttBtn.style.display = "none";
+        }
+
+        // System Logs UI
+        document.getElementById('systemLogs').innerHTML = state.logs.join('<br>') || "कोई गतिविधि नहीं।";
+    }
+
+    // 1. School Status Logic
+    function updateSchoolStatus() {
+        if(state.statusEditsLeft <= 0) return;
+        
+        let val = document.getElementById('schoolStatusSelect').value;
+        state.schoolStatus = val;
+        state.statusEditsLeft -= 1;
+        
+        logAction(`स्कूल स्टेटस बदलकर '${val}' किया गया। (बाकी लिमिट: ${state.statusEditsLeft})`);
+    }
+
+    // 2. Attendance Logic
+    function saveAttendance() {
+        if(state.attEditsLeft <= 0) return;
+
+        let name = document.getElementById('teacherName').value.trim();
+        let att = document.getElementById('attendanceSelect').value;
+
+        if(!name) { alert("कृपया टीचर का नाम दर्ज करें!"); return; }
+
+        state.attEditsLeft -= 1;
+        logAction(`टीचर '${name}' की अटेंडेंस '${att}' मार्क हुई। (बाकी एडिट लिमिट: ${state.attEditsLeft})`);
+        alert("अटेंडेंस सफलतापूर्वक सबमिट हो गई!");
+    }
+
+    // Modal Operations
+    function openReqModal(type) {
+        document.getElementById('reqType').value = type;
+        document.getElementById('reqModal').style.display = 'flex';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function submitPermissionRequest() {
+        let type = document.getElementById('reqType').value;
+        let reason = document.getElementById('reqReason').value.trim();
+
+        if(!reason) { alert("कृपया कारण लिखें!"); return; }
+
+        state.pendingRequests.push({ type, reason, time: new Date().toLocaleTimeString() });
+        logAction(`[Request] '${type}' का चांस बढ़ाने के लिए अनुरोध भेजा गया। (कारण: ${reason})`);
+        
+        document.getElementById('reqReason').value = "";
+        closeModal('reqModal');
+        alert("आपकी रिक्वेस्ट Head Admin के पास भेज दी गई है।");
+    }
+
+    // Admin Operations
+    function openAdminModal() {
+        document.getElementById('adminAuth').style.display = 'block';
+        document.getElementById('adminControls').style.display = 'none';
+        document.getElementById('adminPin').value = '';
+        document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    function verifyAdmin() {
+        let pin = document.getElementById('adminPin').value;
+        if(pin === state.adminPin) {
+            document.getElementById('adminAuth').style.display = 'none';
+            document.getElementById('adminControls').style.display = 'block';
+            switchAdminTab('requests');
+            renderAdminRequests();
+        } else {
+            alert("गलत मास्टर पिन (Incorrect Master PIN)!");
+        }
+    }
+
+    function switchAdminTab(tab) {
+        if(tab === 'requests') {
+            document.getElementById('tabRequests').style.display = 'block';
+            document.getElementById('tabSettings').style.display = 'none';
+            document.getElementById('tabReqBtn').className = 'tab-btn active';
+            document.getElementById('tabSetBtn').className = 'tab-btn';
+        } else {
+            document.getElementById('tabRequests').style.display = 'none';
+            document.getElementById('tabSettings').style.display = 'block';
+            document.getElementById('tabReqBtn').className = 'tab-btn';
+            document.getElementById('tabSetBtn').className = 'tab-btn active';
+        }
+    }
+
+    function changeAdminPin() {
+        let curr = document.getElementById('currPinInput').value;
+        let newPin = document.getElementById('newPinInput').value;
+        let confPin = document.getElementById('confirmPinInput').value;
+
+        if(curr !== state.adminPin) {
+            alert("वर्तमान (पुराना) PIN गलत दर्ज किया है!");
+            return;
+        }
+
+        if(!newPin || newPin.length < 4) {
+            alert("नया PIN कम से कम 4 अक्षरों या अंकों का होना चाहिए!");
+            return;
+        }
+
+        if(newPin !== confPin) {
+            alert("नया PIN और कन्फर्म PIN आपस में मेल नहीं खा रहे हैं!");
+            return;
+        }
+
+        state.adminPin = newPin;
+        logAction("[SECURITY] Admin ने सफलतापूर्वक मास्टर PIN बदल दिया है।");
+        
+        // Clear Inputs
+        document.getElementById('currPinInput').value = '';
+        document.getElementById('newPinInput').value = '';
+        document.getElementById('confirmPinInput').value = '';
+        
+        saveState();
+        alert("बधाई हो! आपका Admin PIN सफलतापूर्वक बदल दिया गया है।");
+        switchAdminTab('requests');
+    }
+
+    function logoutAdmin() {
+        closeModal('adminModal');
+    }
+
+    function renderAdminRequests() {
+        let container = document.getElementById('requestList');
+        if(state.pendingRequests.length === 0) {
+            container.innerHTML = "कोई रिक्वेस्ट पेंडिंग नहीं है।";
+            return;
+        }
+
+        let html = "";
+        state.pendingRequests.forEach((req, index) => {
+            html += `<div style="background:#eee; padding:8px; margin-bottom:5px; border-radius:4px;">
+                <b>${req.type}</b> (${req.time})<br>
+                <i>वजह: ${req.reason}</i><br>
+                <button style="padding:4px 8px; font-size:0.75rem; width:auto; background:green; margin-top:4px;" onclick="approveRequest(${index})">Approve (+1 Limit)</button>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function approveRequest(index) {
+        let req = state.pendingRequests[index];
+        grantExtraChance(req.type, req.reason);
+        state.pendingRequests.splice(index, 1);
+        renderAdminRequests();
+    }
+
+    function grantExtraChance(type, reason = "Admin Manual Override") {
+        if(type === 'Status') {
+            state.statusEditsLeft += 1;
+        } else {
+            state.attEditsLeft += 1;
+        }
+        logAction(`[ADMIN OVERRIDE] Admin ने '${type}' के लिए 1 अतिरिक्त चांस दिया। (कारण: ${reason})`);
+        alert(`'${type}' के लिए +1 Chance दे दिया गया है।`);
+        saveState();
+    }
+
+    // Initialize System on load
+    initSystem();
+</script>
+
+</body>
+</html>

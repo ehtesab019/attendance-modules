@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart School Portal - Attendance & Requests</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <!-- Navigation Header -->
+    <nav class="bg-slate-900 text-white shadow-xl sticky top-0 z-50 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-600 p-2 rounded-xl text-white">
+                        <i class="fa-solid fa-graduation-cap text-xl"></i>
+                    </div>
+                    <span class="font-bold text-lg tracking-wide">स्मार्ट अटेंडेंस पोर्टल</span>
+                </div>
+                
+                <!-- Role Switcher -->
+                <div class="flex items-center bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+                    <button id="navTeacherBtn" onclick="switchRole('teacher')" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-md">
+                        <i class="fa-solid fa-chalkboard-user mr-1.5"></i> टीचर पैनल
+                    </button>
+                    <button id="navHmBtn" onclick="switchRole('hm')" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-user-shield mr-1.5"></i> हेडमास्टर पैनल
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ================= TEACHER PANEL ================= -->
+        <div id="teacherPanel" class="space-y-6">
+            
+            <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold">टीचर डैशबोर्ड 👨‍🏫</h1>
+                    <p class="text-indigo-200 text-sm mt-1">यहाँ से आप नर्सरी से क्लास 3 तक की रिक्वेस्ट और स्टेटस देख सकते हैं।</p>
+                </div>
+            </div>
+
+            <!-- Class & Section Selector (Updated Classes: Nursery to Class 3) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-filter text-indigo-600"></i>
+                    <h3 class="font-bold text-slate-700 text-sm">क्लास चुनें (Class Filter):</h3>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <select id="classSelect" onchange="filterTeacherClassData()" class="px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="Nursery">नर्सरी (Nursery)</option>
+                        <option value="LKG">LKG</option>
+                        <option value="UKG">UKG</option>
+                        <option value="Class 1">कक्षा 1 (Class 1)</option>
+                        <option value="Class 2">कक्षा 2 (Class 2)</option>
+                        <option value="Class 3">कक्षा 3 (Class 3)</option>
+                    </select>
+                    <select id="sectionSelect" onchange="filterTeacherClassData()" class="px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="A">सेक्शन A</option>
+                        <option value="B">सेक्शन B</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Submit Form -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center">
+                        <i class="fa-solid fa-paper-plane text-indigo-600 mr-2"></i> नई रिक्वेस्ट भेजें
+                    </h2>
+                    <form onsubmit="handleTeacherSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">प्रकार</label>
+                            <select id="tReqType" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="Teacher Leave">टीचर लीव (Teacher Leave)</option>
+                                <option value="Student Special Approval">स्टूडेंट स्पेशल अप्रूवल</option>
+                                <option value="Classroom Resource">टीचिंग सामान/रिसोर्स</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">विवरण / कारण</label>
+                            <textarea id="tReqDesc" rows="3" required placeholder="विवरण लिखें..." class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl shadow-md transition-all text-sm flex items-center justify-center">
+                            <i class="fa-solid fa-paper-plane mr-2"></i> हेडमास्टर को भेजें
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Teacher Class Requests Table -->
+                <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-users text-indigo-600 mr-2"></i> चुने गए क्लास की रिक्वेस्ट
+                        </h2>
+                        <span id="currentClassTag" class="text-xs bg-indigo-50 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-200">Nursery - A</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-slate-400 text-xs uppercase tracking-wider">
+                                    <th class="pb-3 font-bold">आवेदक</th>
+                                    <th class="pb-3 font-bold">प्रकार</th>
+                                    <th class="pb-3 font-bold">विवरण</th>
+                                    <th class="pb-3 font-bold">तारीख</th>
+                                    <th class="pb-3 font-bold">स्टेटस</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacherTableBody" class="text-sm divide-y divide-slate-100">
+                                <!-- Data populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= HEADMASTER PANEL ================= -->
+        <div id="hmPanel" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-slate-800">
+                <div>
+                    <h1 class="text-2xl font-bold">हेडमास्टर अप्रूवल कंसोल 👑</h1>
+                    <p class="text-slate-400 text-sm mt-1">नर्सरी से क्लास 3 तक की सभी पेंडिंग रिक्वेस्ट यहाँ देखें।</p>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">पेंडिंग (Pending)</p>
+                        <h3 id="statPendingHM" class="text-2xl font-bold text-amber-500 mt-1">0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 font-bold">
+                        <i class="fa-solid fa-hourglass-start"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Approved</p>
+                        <h3 id="statApprovedHM" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 font-bold">
+                        <i class="fa-solid fa-check-circle"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Rejected</p>
+                        <h3 id="statRejectedHM" class="text-2xl font-bold text-rose-600 mt-1">0</h3>
+                    </div>
+                    <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 font-bold">
+                        <i class="fa-solid fa-times-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HM Master Approval Table -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <h2 class="text-base font-bold text-slate-800">
+                        <i class="fa-solid fa-clipboard-check text-indigo-600 mr-2"></i> मास्टर अप्रूवल लिस्ट
+                    </h2>
+                    
+                    <div class="flex items-center gap-3">
+                        <select id="hmStatusFilter" onchange="renderHmTable()" class="px-3.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none">
+                            <option value="Pending" selected>केवल Pending दिखाएं</option>
+                            <option value="ALL">सभी डेटा</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-400 text-xs uppercase tracking-wider">
+                                <th class="pb-3 font-bold">आवेदक</th>
+                                <th class="pb-3 font-bold">क्लास</th>
+                                <th class="pb-3 font-bold">प्रकार</th>
+                                <th class="pb-3 font-bold">विवरण</th>
+                                <th class="pb-3 font-bold">स्टेटस</th>
+                                <th class="pb-3 font-bold text-center">एक्शन (Action)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hmTableBody" class="text-sm divide-y divide-slate-100">
+                            <!-- Data populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Data Structure with Nursery to Class 3 sample data
+        let masterRequests = [
+            { id: "REQ-101", applicant: "टीचर (अमित शर्मा)", class: "Nursery", section: "A", type: "Teacher Leave", desc: "ज़रूरी काम से 1 दिन का अवकाश।", date: "04-08-2026", status: "Pending", remark: "-" },
+            { id: "REQ-102", applicant: "अयान खान (Student)", class: "UKG", section: "A", type: "Student Special Approval", desc: "तबीयत खराब होने के कारण लीव।", date: "04-08-2026", status: "Pending", remark: "-" },
+            { id: "REQ-103", applicant: "रिया कुमारी (Student)", class: "Class 2", section: "B", type: "Student Special Approval", desc: "पारिवारिक कार्यक्रम।", date: "03-08-2026", status: "Approved", remark: "Approved" }
+        ];
+
+        function switchRole(role) {
+            const tPanel = document.getElementById('teacherPanel');
+            const hmPanel = document.getElementById('hmPanel');
+            const navTeacherBtn = document.getElementById('navTeacherBtn');
+            const navHmBtn = document.getElementById('navHmBtn');
+
+            if (role === 'teacher') {
+                tPanel.classList.remove('hidden');
+                hmPanel.classList.add('hidden');
+                navTeacherBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-md";
+                navHmBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white";
+                filterTeacherClassData();
+            } else {
+                tPanel.classList.add('hidden');
+                hmPanel.classList.remove('hidden');
+                navHmBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-md";
+                navTeacherBtn.className = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-white";
+                renderHmTable();
+            }
+        }
+
+        function filterTeacherClassData() {
+            const selectedClass = document.getElementById('classSelect').value;
+            const selectedSec = document.getElementById('sectionSelect').value;
+            document.getElementById('currentClassTag').innerText = `${selectedClass} - ${selectedSec}`;
+
+            const tbody = document.getElementById('teacherTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = masterRequests.filter(r => 
+                (r.class === selectedClass && r.section === selectedSec) || r.type === 'Teacher Leave'
+            );
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 text-xs">इस क्लास/सेक्शन के लिए कोई रिक्वेस्ट नहीं मिली।</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(req => {
+                let badgeStyle = "bg-amber-50 text-amber-700 border-amber-200";
+                if(req.status === 'Approved') badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                if(req.status === 'Rejected') badgeStyle = "bg-rose-50 text-rose-700 border-rose-200";
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3 font-semibold text-slate-800">${req.applicant}</td>
+                        <td class="py-3 text-slate-600 text-xs">${req.type}</td>
+                        <td class="py-3 text-slate-500 text-xs">${req.desc}</td>
+                        <td class="py-3 text-slate-500 text-xs">${req.date}</td>
+                        <td class="py-3">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeStyle}">
+                                ${req.status}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function handleTeacherSubmit(e) {
+            e.preventDefault();
+            const type = document.getElementById('tReqType').value;
+            const desc = document.getElementById('tReqDesc').value;
+            const selectedClass = document.getElementById('classSelect').value;
+            const selectedSec = document.getElementById('sectionSelect').value;
+
+            const newRequest = {
+                id: `REQ-${Math.floor(100 + Math.random() * 900)}`,
+                applicant: "टीचर (अमित शर्मा)",
+                class: selectedClass,
+                section: selectedSec,
+                type: type,
+                desc: desc,
+                date: new Date().toLocaleDateString('en-GB'),
+                status: "Pending",
+                remark: "-"
+            };
+
+            masterRequests.unshift(newRequest);
+            document.getElementById('tReqDesc').value = '';
+            alert('रिक्वेस्ट सफलतापूर्वक भेज दी गई है!');
+            filterTeacherClassData();
+        }
+
+        function renderHmTable() {
+            const filter = document.getElementById('hmStatusFilter').value;
+            const tbody = document.getElementById('hmTableBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('statPendingHM').innerText = masterRequests.filter(r => r.status === 'Pending').length;
+            document.getElementById('statApprovedHM').innerText = masterRequests.filter(r => r.status === 'Approved').length;
+            document.getElementById('statRejectedHM').innerText = masterRequests.filter(r => r.status === 'Rejected').length;
+
+            const filtered = masterRequests.filter(r => filter === 'ALL' || r.status === filter);
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">कोई रिकॉर्ड नहीं मिला।</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(req => {
+                let badgeStyle = "bg-amber-50 text-amber-700 border-amber-200";
+                if(req.status === 'Approved') badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                if(req.status === 'Rejected') badgeStyle = "bg-rose-50 text-rose-700 border-rose-200";
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3 font-semibold text-slate-800">${req.applicant}</td>
+                        <td class="py-3 text-xs text-slate-500">${req.class} (${req.section})</td>
+                        <td class="py-3 text-xs text-slate-600">${req.type}</td>
+                        <td class="py-3 text-xs text-slate-500 max-w-xs truncate">${req.desc}</td>
+                        <td class="py-3">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${badgeStyle}">
+                                ${req.status}
+                            </span>
+                        </td>
+                        <td class="py-3 text-center">
+                            ${req.status === 'Pending' ? `
+                                <div class="flex items-center justify-center space-x-2">
+                                    <button onclick="changeStatusHM('${req.id}', 'Approved')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm">
+                                        Approve
+                                    </button>
+                                    <button onclick="changeStatusHM('${req.id}', 'Rejected')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm">
+                                        Reject
+                                    </button>
+                                </div>
+                            ` : `
+                                <span class="text-xs text-slate-400 italic">Action Completed</span>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function changeStatusHM(id, action) {
+            const req = masterRequests.find(r => r.id === id);
+            if(req) {
+                req.status = action;
+                renderHmTable();
+            }
+        }
+
+        filterTeacherClassData();
+    </script>
+</body>
+</html>
+

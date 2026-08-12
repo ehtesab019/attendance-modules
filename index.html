@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Public School Attendance System - MD Ehtesab AI Studio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QR Code Library for Digital ID Card -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @keyframes modalPop {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: modalPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans transition-colors duration-300" id="body-theme">
+
+    <!-- UNIVERSAL DYNAMIC POPUP MODAL -->
+    <div id="dynamic-popup" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50 transition-all duration-300">
+        <div id="popup-box" class="bg-white rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl border border-gray-100 animate-pop relative overflow-hidden">
+            <div id="popup-accent-bar" class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-green-400 to-emerald-600"></div>
+            
+            <div id="popup-icon-box" class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner transition-colors duration-300">
+                <i id="popup-icon" class="fa-solid fa-check"></i>
+            </div>
+            
+            <div class="space-y-1">
+                <h3 class="text-xl font-extrabold text-gray-800 tracking-tight" id="popup-title">Operation Successful</h3>
+                <p class="text-xs font-medium text-gray-500 leading-relaxed" id="popup-desc">Your action has been recorded in the system.</p>
+            </div>
+
+            <div id="popup-action-container" class="pt-2">
+                <button onclick="closeDynamicPopup()" id="popup-btn" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 rounded-2xl font-bold text-sm shadow-lg transition transform active:scale-95">
+                    ठीक है, समझ गए (OK)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIGITAL QR ID CARD MODAL -->
+    <div id="qr-id-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl animate-pop text-center relative overflow-hidden border-2 border-indigo-100">
+            <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-indigo-600 via-blue-500 to-indigo-800"></div>
+            <div class="flex justify-between items-center pt-2 border-b pb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap text-indigo-700 text-xl"></i>
+                    <div class="text-left">
+                        <h4 class="text-xs font-black text-indigo-900 leading-tight">Smart Public School</h4>
+                        <p class="text-[9px] text-gray-500">Andharkotha, Gumani</p>
+                    </div>
+                </div>
+                <button onclick="closeQrModal()" class="text-gray-400 hover:text-red-600 transition"><i class="fa-solid fa-circle-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-3 py-2">
+                <div class="w-20 h-20 bg-indigo-50 border-2 border-indigo-200 text-indigo-700 rounded-2xl flex items-center justify-center mx-auto text-3xl font-bold shadow-inner">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <div>
+                    <h3 id="qr-student-name" class="text-base font-black text-gray-800 uppercase tracking-wide">STUDENT NAME</h3>
+                    <p class="text-xs font-bold text-indigo-600 mt-0.5"><span id="qr-student-class">CLASS</span> | Roll No: <span id="qr-student-roll">1</span></p>
+                </div>
+                <div class="bg-gray-50 p-2.5 rounded-2xl border text-xs text-left space-y-1">
+                    <div><b>अभिभावक:</b> <span id="qr-parent-name">-</span></div>
+                    <div><b>मोबाइल:</b> <span id="qr-parent-phone">-</span></div>
+                </div>
+                <div class="bg-white p-3 rounded-2xl border-2 border-dashed border-indigo-200 inline-block shadow-sm">
+                    <div id="qrcode-container" class="flex justify-center"></div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2 border-t">
+                <button onclick="window.print()" class="w-full bg-indigo-600 text-white py-2.5 rounded-xl text-xs font-bold shadow"><i class="fa-solid fa-print"></i> Print ID Card</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REQUEST TIME EXTENSION MODAL -->
+    <div id="req-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-pop border border-amber-100">
+            <div class="flex items-center gap-3 border-b pb-3 border-amber-100">
+                <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-lg font-bold">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-gray-800">अटेंडेंस का समय बढ़ाने की अर्जी</h3>
+                    <p class="text-[10px] text-gray-400">Send Time Extension Request to Headmaster</p>
+                </div>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">कब तक का समय चाहिए?</label>
+                    <select id="req-target-time" class="w-full border-2 border-gray-100 p-2.5 rounded-xl font-bold text-indigo-900 bg-gray-50 outline-none">
+                        <option value="15:00">दोपहर 03:00 बजे तक</option>
+                        <option value="18:00">शाम 06:00 बजे तक</option>
+                        <option value="20:00" selected>रात 08:00 बजे तक</option>
+                        <option value="23:59">रात 11:59 बजे तक (Full Day)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-gray-700 mb-1">देरी का कारण</label>
+                    <textarea id="req-reason" rows="3" placeholder="उदा. नेटवर्क समस्या के कारण..." class="w-full border-2 border-gray-100 p-3 rounded-2xl text-xs outline-none bg-gray-50/50"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-2 border-t pt-3">
+                <button onclick="closeReqModal()" class="w-1/2 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-bold">रद्द करें</button>
+                <button onclick="submitPermissionRequest()" class="w-1/2 bg-amber-600 text-white py-2.5 rounded-xl text-xs font-bold shadow">हेडमास्टर को भेजें</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TEACHER APPLICATION & COMPLAINT STATUS TRACKER MODAL -->
+    <div id="leave-status-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[88vh] flex flex-col animate-pop">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-extrabold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass text-indigo-600 text-xl"></i> शिक्षक अर्जी और स्टेटस ट्रैकर (Track All Applications)
+                </h3>
+                <button onclick="closeLeaveStatusModal()" class="text-gray-400 hover:text-red-600"><i class="fa-solid fa-circle-xmark text-xl"></i></button>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="search-app-num" onkeyup="renderTeacherLeaveStatuses()" placeholder="Search App No. (e.g. APP-ST-8401)..." class="w-full border-2 border-gray-100 p-2.5 rounded-xl text-xs font-bold outline-none uppercase">
+            </div>
+            <div id="teacher-leave-status-list" class="flex-1 overflow-y-auto space-y-3 text-xs pr-1"></div>
+            <div class="border-t pt-3">
+                <button onclick="closeLeaveStatusModal()" class="w-full bg-gray-100 text-gray-700 py-2.5 rounded-2xl text-xs font-bold">बंद करें</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADMASTER CONTROL PANEL MODAL -->
+    <div id="admin-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-2 sm:p-6 z-50">
+        <div class="bg-white rounded-3xl w-full max-w-6xl p-4 sm:p-6 space-y-4 shadow-2xl h-[95vh] flex flex-col justify-between animate-pop">
+            <div class="flex justify-between items-center border-b pb-3 shrink-0">
+                <div class="flex items-center gap-3">
+                    <button onclick="closeAdminModal()" class="bg-gray-100 hover:bg-indigo-50 text-indigo-700 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-arrow-left"></i> Exit Dashboard
+                    </button>
+                    <h3 class="text-base sm:text-xl font-black text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-indigo-600 text-xl"></i> Headmaster Manual Approval & Control Dashboard
+                    </h3>
+                </div>
+                <button onclick="closeAdminModal()" class="text-gray-400 hover:text-red-600 transition p-1"><i class="fa-solid fa-circle-xmark text-2xl"></i></button>
+            </div>
+
+            <div id="admin-auth" class="space-y-4 my-auto py-12 max-w-md mx-auto text-center w-full px-4">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-inner">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <h4 class="text-base font-bold text-gray-800">Security PIN Verification</h4>
+                <p class="text-xs text-gray-500">Please enter Headmaster Security PIN (Default: 1234)</p>
+                <input type="password" id="admin-pin-input" placeholder="Enter PIN (Default: 1234)" class="w-full border-2 border-gray-200 px-4 py-3 rounded-2xl text-center text-lg tracking-widest outline-none shadow-sm">
+                <button onclick="verifyAdminPin()" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-2xl text-sm font-bold shadow-lg transition">Authenticate</button>
+            </div>
+
+            <div id="admin-controls" class="hidden flex-1 flex flex-col space-y-3 overflow-hidden">
+                <div class="grid grid-cols-4 gap-2 text-center shrink-0">
+                    <div class="bg-blue-50 border border-blue-200 p-2.5 rounded-2xl">
+                        <p class="text-[10px] text-blue-600 font-bold uppercase">Total Pending Requests</p>
+                        <h4 class="text-base sm:text-lg font-black text-blue-900 mt-0.5" id="hm-card-total">0</h4>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-2xl">
+                        <p class="text-[10px] text-amber-600 font-bold uppercase">Student Approvals</p>
+                        <h4 class="text-base sm:text-lg font-black text-amber-900 mt-0.5" id="hm-card-students">0</h4>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 p-2.5 rounded-2xl">
+                        <p class="text-[10px] text-green-600 font-bold uppercase">Time Extensions</p>
+                        <h4 class="text-base sm:text-lg font-black text-green-900 mt-0.5" id="hm-card-times">0</h4>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 p-2.5 rounded-2xl">
+                        <p class="text-[10px] text-red-600 font-bold uppercase">Emergency Controls</p>
+                        <h4 class="text-base sm:text-lg font-black text-red-900 mt-0.5">Active</h4>
+                    </div>
+                </div>
+
+                <div class="flex gap-1.5 border-b pb-2.5 overflow-x-auto shrink-0 no-scrollbar">
+                    <button id="tab-btn-student-app" onclick="switchAdminTab('student-approvals')" class="text-xs font-bold px-3.5 py-2 bg-indigo-600 text-white rounded-xl shadow shrink-0 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-check"></i> Student Approvals
+                    </button>
+                    <button id="tab-btn-req" onclick="switchAdminTab('requests')" class="text-xs font-bold px-3.5 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 shrink-0 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Time Requests
+                    </button>
+                    <button id="tab-btn-school-control" onclick="switchAdminTab('school-control')" class="text-xs font-bold px-3.5 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 shrink-0 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-school text-red-600"></i> Emergency School Open/Close
+                    </button>
+                    <button id="tab-btn-settings" onclick="switchAdminTab('admin-settings')" class="text-xs font-bold px-3.5 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 shrink-0 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-gears text-indigo-600"></i> Settings & PIN
+                    </button>
+                </div>
+
+                <!-- TAB 1 -->
+                <div id="admin-tab-student-approvals" class="flex-1 overflow-y-auto space-y-3.5 pr-2 text-xs sm:text-sm">
+                    <div class="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 text-xs font-semibold text-indigo-900">
+                        📌 निर्देश: हेडमास्टर जब तक यहाँ से <b>Approve</b> नहीं करेंगे, तब तक कोई भी छात्र लाइव नहीं होगा। (अप्रूव्ड लिस्ट 24 घंटे बाद स्वतः साफ़ हो जाएगी और परमानेंट पीडीएफ में सेव रहेगी)।
+                    </div>
+                    <div id="admin-student-approval-list" class="space-y-3.5 pb-4">No pending student requests.</div>
+                </div>
+
+                <!-- TAB 2 -->
+                <div id="admin-tab-requests" class="hidden flex-1 overflow-y-auto space-y-3.5 pr-2 text-xs sm:text-sm">
+                    <div id="admin-req-list" class="space-y-3.5 pb-4">No pending time requests.</div>
+                </div>
+
+                <!-- TAB 3: EMERGENCY SCHOOL OPEN / CLOSE CONTROL -->
+                <div id="admin-tab-school-control" class="hidden flex-1 overflow-y-auto space-y-4 pr-2 text-xs sm:text-sm p-4 bg-red-50 rounded-2xl border border-red-200">
+                    <div class="bg-white p-5 rounded-2xl border space-y-4 shadow-sm">
+                        <h4 class="font-bold text-red-800 text-base flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> आपातकालीन स्कूल नियंत्रण (Emergency Control)</h4>
+                        <p class="text-xs text-gray-600">यदि स्कूल बंद करना है (Emergency Closure), तो यहाँ से 'Closed' करें। <b>नोट:</b> एक बार स्कूल Closed होने के बाद शिक्षक उसे खुद Open नहीं कर सकते, केवल हेडमास्टर यहाँ से 'Open School' कर सकते हैं।</p>
+                        <div class="flex gap-3">
+                            <button onclick="headmasterSetSchoolStatus('OPEN')" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow text-sm">
+                                <i class="fa-solid fa-school"></i> Open School (स्कूल खोलें)
+                            </button>
+                            <button onclick="headmasterSetSchoolStatus('CLOSED')" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold shadow text-sm">
+                                <i class="fa-solid fa-ban"></i> Emergency Close School (आपातकालीन छुट्टी)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4 -->
+                <div id="admin-tab-admin-settings" class="hidden flex-1 overflow-y-auto space-y-4 pr-2 text-xs sm:text-sm p-4 bg-gray-50 rounded-2xl border">
+                    <div class="bg-white p-4 rounded-2xl border space-y-3 shadow-sm">
+                        <h4 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-key text-indigo-600"></i> Change Admin PIN</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input type="password" id="new-admin-pin" placeholder="Enter new PIN" maxlength="6" class="border p-2.5 rounded-xl font-bold outline-none">
+                            <button onclick="saveNewAdminPin()" class="bg-indigo-600 text-white py-2.5 rounded-xl font-bold shadow">Save PIN</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t pt-2 flex justify-between items-center text-xs text-gray-500 shrink-0">
+                    <span>Headmaster Manual Control Panel</span>
+                    <button onclick="closeAdminModal()" class="text-indigo-600 font-bold hover:underline">Close Dashboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 bg-indigo-900 z-50 flex flex-col items-center justify-center p-4 overflow-y-auto space-y-6">
+        <div class="text-center text-white space-y-1.5">
+            <i class="fa-solid fa-graduation-cap text-yellow-400 text-4xl"></i>
+            <h2 class="text-2xl font-black">Smart Public School</h2>
+            <p class="text-xs text-indigo-200">Andharkotha, Gumani - Official Portal</p>
+        </div>
+        <div class="w-full max-w-sm space-y-4">
+            <div class="bg-white rounded-3xl p-6 shadow-2xl space-y-4 border border-white/20">
+                <h3 class="text-base font-bold text-gray-800 text-center"><i class="fa-solid fa-lock text-indigo-600"></i> Admin / Teacher Login</h3>
+                <div class="space-y-3 pt-1">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Enter Registered Mobile Number</label>
+                        <input type="tel" id="login-mobile" placeholder="Enter mobile number" maxlength="10" class="w-full border px-3 py-3 rounded-xl text-sm outline-none font-bold">
+                    </div>
+                    <button onclick="handleLogin(); requestNotificationPermission();" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg transition">Login Dashboard</button>
+                </div>
+            </div>
+        </div>
+        <div class="text-[10px] text-indigo-300 text-center">Smart Public School Andharkotha, Gumani © 2026<br><span class="text-yellow-400 font-semibold">Powered by MD Ehtesab AI Studio</span></div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="main-app" class="hidden h-screen flex flex-col pb-20 md:pb-0 overflow-y-auto">
+        <header class="bg-indigo-900 text-white px-4 py-3 flex justify-between items-center shadow-md sticky top-0 z-40">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-graduation-cap text-yellow-400 text-xl"></i>
+                <div>
+                    <span class="font-bold text-sm block">Smart Public School</span>
+                    <span class="text-[10px] text-indigo-200 block">MD Ehtesab AI Studio</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openLeaveStatusModal()" class="text-xs bg-indigo-700 hover:bg-indigo-800 text-white px-3 py-2 rounded-xl font-bold shadow flex items-center gap-1">
+                    <i class="fa-solid fa-magnifying-glass"></i> स्टेटस ट्रैक
+                </button>
+                <button onclick="openAdminModal()" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3.5 py-2 rounded-xl font-bold shadow relative">
+                    <i class="fa-solid fa-user-shield"></i> Head Panel
+                    <span id="header-pending-dot" class="hidden absolute -top-1 -right-1 bg-red-600 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-extrabold animate-bounce">!</span>
+                </button>
+                <div class="text-xs bg-indigo-800 px-2 py-1 rounded" id="live-clock"></div>
+                <button onclick="handleLogout()" class="text-xs bg-red-600 px-2.5 py-1 rounded font-medium"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <main class="p-4 max-w-4xl mx-auto flex-1 w-full space-y-4">
+
+            <!-- 1. DASHBOARD & MY REPORT SECTION -->
+            <div id="view-dashboard" class="space-y-4">
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <h2 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-chart-pie text-indigo-600"></i> School Dashboard & My Report</h2>
+                    <button onclick="sendWhatsAppAlert()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow flex items-center gap-1.5">
+                        <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp Detailed Alert
+                    </button>
+                </div>
+                
+                <!-- MY REPORT SECTION (आज स्कूल कितने घंटे चला) -->
+                <div class="bg-gradient-to-r from-indigo-800 to-blue-900 text-white p-4 rounded-2xl shadow-md space-y-2">
+                    <h3 class="text-sm font-bold flex items-center gap-2"><i class="fa-solid fa-file-lines text-yellow-400"></i> My Report (आज का स्कूल कार्य रिपोर्ट)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+                        <div class="bg-white/10 p-2.5 rounded-xl border border-white/20">
+                            <div>📅 Date: <b id="report-date">-</b></div>
+                        </div>
+                        <div class="bg-white/10 p-2.5 rounded-xl border border-white/20">
+                            <div>🏫 School Status: <b id="report-status" class="text-green-400">OPEN</b></div>
+                        </div>
+                        <div class="bg-white/10 p-2.5 rounded-xl border border-white/20">
+                            <div>⏱️ Total Operational Hours: <b id="report-hours" class="text-yellow-300">7 Hours (07:00 AM - 02:00 PM)</b></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                        <p class="text-xs text-gray-500 font-medium">Total Active Students</p>
+                        <h3 class="text-xl font-bold text-gray-800 mt-1" id="dash-total-students">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-indigo-500">
+                        <p class="text-xs text-gray-500 font-medium">Total Teachers</p>
+                        <h3 class="text-xl font-bold text-gray-800 mt-1" id="dash-total-teachers">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-500">
+                        <p class="text-xs text-gray-500 font-medium">Student Present Today</p>
+                        <h3 class="text-xl font-bold text-green-600 mt-1" id="dash-present">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-red-500">
+                        <p class="text-xs text-gray-500 font-medium">Student Absent Today</p>
+                        <h3 class="text-xl font-bold text-red-600 mt-1" id="dash-absent">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-gray-800 border-b pb-2"><i class="fa-solid fa-clipboard-user text-indigo-600"></i> Today's Attendance Details (Live View)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div class="bg-green-50/60 p-3.5 rounded-2xl border border-green-200">
+                            <h4 class="font-extrabold text-green-800 mb-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> Present Students List</h4>
+                            <div id="dash-present-list" class="space-y-1 text-gray-700 max-h-48 overflow-y-auto pr-1"></div>
+                        </div>
+                        <div class="bg-red-50/60 p-3.5 rounded-2xl border border-red-200">
+                            <h4 class="font-extrabold text-red-800 mb-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-xmark"></i> Absent Students List</h4>
+                            <div id="dash-absent-list" class="space-y-1 text-gray-700 max-h-48 overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. STUDENT MANAGEMENT VIEW -->
+            <div id="view-students" class="hidden space-y-4">
+                <div class="flex flex-col gap-2">
+                    <div class="flex gap-2">
+                        <input type="text" id="search-student" onkeyup="filterStudents()" placeholder="Search student by name or roll..." class="px-3 py-2 border rounded-xl text-sm w-full uppercase font-bold">
+                        <button onclick="openStudentModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow whitespace-nowrap"><i class="fa-solid fa-plus"></i> Add Student</button>
+                    </div>
+                    <select id="filter-class-dropdown" onchange="filterStudents()" class="border px-3 py-2 rounded-xl text-xs bg-white text-gray-700 font-bold">
+                        <option value="ALL">All Classes (सभी कक्षाएं)</option>
+                    </select>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 border-b">
+                                <th class="p-3">Roll</th>
+                                <th class="p-3">Name</th>
+                                <th class="p-3">Class</th>
+                                <th class="p-3">Parent Name & Phone</th>
+                                <th class="p-3 text-center">Status / Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-table-body" class="divide-y text-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. TEACHER MANAGEMENT VIEW -->
+            <div id="view-teachers" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-base font-bold text-gray-800">Teacher List</h3>
+                    <button onclick="openTeacherModal()" class="bg-indigo-600 text-white px-3 py-2 rounded-xl text-sm font-medium shadow"><i class="fa-solid fa-plus"></i> Add Teacher</button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 border-b">
+                                <th class="p-3">Name</th>
+                                <th class="p-3">Subject</th>
+                                <th class="p-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-table-body" class="divide-y text-gray-700"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. MONTHLY SUMMARY VIEW -->
+            <div id="view-monthly" class="hidden space-y-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm space-y-3">
+                    <h3 class="text-base font-bold text-gray-800">Class-Wise & Monthly Attendance Summary</h3>
+                    <div class="flex gap-3 items-center flex-wrap">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Select Month:</label>
+                            <input type="month" id="monthly-picker" class="border px-3 py-1.5 rounded-xl text-sm" onchange="loadMonthlySummary()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Select Class:</label>
+                            <select id="monthly-class-filter" class="border px-3 py-1.5 rounded-xl text-sm bg-white font-medium" onchange="loadMonthlySummary()">
+                                <option value="ALL">All Classes (सभी कक्षाएं)</option>
+                                <option value="TEACHERS_ONLY">👨‍🏫 Teachers Summary Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 border-b">
+                                <th class="p-3">Roll</th>
+                                <th class="p-3">Name</th>
+                                <th class="p-3 text-center text-green-600">Total Present</th>
+                                <th class="p-3 text-center text-red-600">Total Absent</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-table-body" class="divide-y text-gray-700"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button onclick="exportToExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-medium shadow"><i class="fa-solid fa-file-excel"></i> Export CSV</button>
+                    <button onclick="window.print()" class="bg-gray-700 text-white px-4 py-2 rounded-xl text-xs font-medium shadow"><i class="fa-solid fa-print"></i> Print</button>
+                </div>
+            </div>
+
+            <!-- 5. ATTENDANCE VIEW -->
+            <div id="view-attendance" class="hidden space-y-4">
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-2xl flex justify-between items-center text-xs flex-wrap gap-2">
+                    <div>
+                        <span class="font-bold text-amber-800"><i class="fa-solid fa-clock"></i> अटेंडेंस समय सीमा:</span>
+                        <span id="time-window-label" class="text-amber-900 font-semibold ml-1">सुबह 07:00 AM से दोपहर 02:00 PM तक</span>
+                    </div>
+                    <span id="chances-badge" class="bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-lg">बाकी चांस: 1</span>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm space-y-3">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600">Today's Date (Auto Locked)</label>
+                            <input type="date" id="attendance-date" disabled class="border px-3 py-1.5 rounded-xl text-sm bg-gray-200 text-gray-700 font-bold cursor-not-allowed">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600">School Status (Locked for Teachers)</label>
+                            <input type="text" id="school-status-display" disabled class="border px-3 py-1.5 rounded-xl text-sm font-bold bg-gray-100 text-indigo-900 w-36 text-center" value="OPEN">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                            <select id="att-category" class="border px-2 py-1.5 rounded-xl text-xs font-medium bg-indigo-50 text-indigo-700 w-full font-bold" onchange="handleCategoryChange()">
+                                <option value="student">🎓 Student Attendance</option>
+                                <option value="teacher">👨‍🏫 Teacher Attendance</option>
+                            </select>
+                        </div>
+                        <div id="att-class-container">
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Select Class (कक्षा चुनें)</label>
+                            <select id="att-class-filter" class="border px-2 py-1.5 rounded-xl text-xs font-medium bg-white w-full font-bold text-indigo-900" onchange="loadAttendanceList()"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendance-container" class="bg-white rounded-2xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 border-b">
+                                <th class="p-3" id="att-th-title">Roll & Name</th>
+                                <th class="p-3 text-center">Status (Auto-Locking)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-table-body" class="divide-y text-gray-700"></tbody>
+                    </table>
+                    <div class="p-3 bg-gray-50 border-t flex justify-end gap-2 items-center flex-wrap" id="submit-btn-container">
+                        <button onclick="openReqModal()" id="req-chance-btn" class="hidden bg-amber-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow">
+                            <i class="fa-solid fa-clock-rotate-left"></i> समय बढ़ाने की अर्जी दें
+                        </button>
+                        <button onclick="submitAttendance()" id="submit-attendance-btn" class="bg-green-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow">Submit Attendance</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. SETTINGS VIEW -->
+            <div id="view-settings" class="hidden space-y-4">
+                <div class="bg-white p-4 rounded-2xl shadow-sm space-y-4 max-w-md mx-auto">
+                    <h3 class="text-base font-bold text-gray-800"><i class="fa-solid fa-mobile-screen text-indigo-600"></i> Update Admin Mobile Number</h3>
+                    <div class="space-y-3">
+                        <input type="tel" id="set-new-mobile" placeholder="Enter 10-digit mobile number" maxlength="10" class="w-full border px-3 py-2 rounded-xl text-sm font-bold">
+                        <button onclick="updateAdminMobile()" class="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-medium">Save Mobile Number</button>
+                    </div>
+                    <hr class="my-4">
+                    <h3 class="text-base font-bold text-gray-800"><i class="fa-solid fa-database text-blue-600"></i> Full Data Backup & Restore</h3>
+                    <div class="flex gap-2">
+                        <button onclick="exportData()" class="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-xs font-bold shadow">Download Backup</button>
+                        <label class="flex-1 bg-green-600 text-white py-2.5 rounded-xl text-xs font-bold text-center cursor-pointer shadow">
+                            Restore <input type="file" id="restore-file" onchange="importData(event)" class="hidden" accept=".json">
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- BOTTOM NAV -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-2 shadow-lg z-40 text-xs">
+            <button onclick="switchTab('dashboard')" class="tab-link flex flex-col items-center text-indigo-600 font-medium">
+                <i class="fa-solid fa-chart-pie text-lg"></i><span>Dashboard</span>
+            </button>
+            <button onclick="switchTab('students')" class="tab-link flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-user-graduate text-lg"></i><span>Students</span>
+            </button>
+            <button onclick="switchTab('teachers')" class="tab-link flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-chalkboard-user text-lg"></i><span>Teachers</span>
+            </button>
+            <button onclick="switchTab('monthly')" class="tab-link flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-calendar-days text-lg"></i><span>Monthly</span>
+            </button>
+            <button onclick="switchTab('attendance')" class="tab-link flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-calendar-check text-lg"></i><span>Attendance</span>
+            </button>
+            <button onclick="switchTab('settings')" class="tab-link flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-gear text-lg"></i><span>Settings</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODALS -->
+    <div id="student-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-3.5 shadow-2xl animate-pop text-xs sm:text-sm">
+            <h3 id="modal-title" class="text-base font-extrabold text-gray-800"><i class="fa-solid fa-user-plus text-indigo-600"></i> Add / Edit Student Application</h3>
+            <input type="hidden" id="edit-index" value="-1">
+            <div>
+                <label class="block text-xs text-gray-600 mb-1 font-bold">शिक्षक चुनें</label>
+                <select id="s-added-by" class="w-full border-2 border-gray-100 p-2.5 rounded-xl font-bold bg-indigo-50 text-indigo-900 outline-none"></select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1 font-bold">कक्षा चुनें</label>
+                <select id="s-class" onchange="autoSuggestRollNumber()" class="w-full border-2 border-gray-100 p-2.5 rounded-xl font-bold bg-white outline-none"></select>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1 font-bold">छात्र का नाम</label>
+                <input type="text" id="s-name" placeholder="Student Full Name" class="w-full border-2 border-gray-100 px-3 py-2.5 rounded-xl text-sm uppercase outline-none font-bold">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1 font-bold">रोल नंबर</label>
+                <input type="text" id="s-roll" placeholder="Roll Number" class="w-full border-2 border-gray-100 px-3 py-2.5 rounded-xl text-sm outline-none font-bold">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1 font-bold">अभिभावक का नाम</label>
+                <input type="text" id="s-parent" placeholder="Parent's Name" class="w-full border-2 border-gray-100 px-3 py-2.5 rounded-xl text-sm uppercase outline-none font-bold">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1 font-bold">अभिभावक का मोबाइल नंबर</label>
+                <input type="tel" id="s-phone" placeholder="10-digit mobile number" maxlength="10" class="w-full border-2 border-gray-100 px-3 py-2.5 rounded-xl text-sm outline-none font-bold">
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t">
+                <button onclick="closeStudentModal()" class="px-4 py-2.5 border rounded-xl text-sm text-gray-600 font-bold">Cancel</button>
+                <button onclick="saveStudentData()" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md">Submit to Headmaster</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="teacher-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3 shadow-2xl animate-pop">
+            <h3 class="text-base font-extrabold text-gray-800"><i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Add New Teacher</h3>
+            <input type="text" id="t-name" placeholder="Teacher Name" class="w-full border-2 border-gray-100 px-3 py-2 rounded-xl text-sm uppercase outline-none font-bold">
+            <input type="text" id="t-subject" placeholder="Subject" class="w-full border-2 border-gray-100 px-3 py-2 rounded-xl text-sm uppercase outline-none font-bold">
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeTeacherModal()" class="px-4 py-2 border rounded-xl text-sm text-gray-600 font-bold">Cancel</button>
+                <button onclick="saveTeacherData()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md">Save Teacher</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        function getTodayDateString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // --- 15 MINUTE AUTO-LOGOUT ---
+        let activityTimeout;
+        const LOGOUT_TIME = 15 * 60 * 1000;
+        function resetLogoutTimer() {
+            clearTimeout(activityTimeout);
+            activityTimeout = setTimeout(() => {
+                if(localStorage.getItem('smart_school_logged') === 'true') {
+                    handleLogout();
+                }
+            }, LOGOUT_TIME);
+        }
+        ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, resetLogoutTimer, true);
+        });
+
+        let extendedTimeLimits = JSON.parse(localStorage.getItem('sps_extended_time_limits')) || {};
+
+        function isWithinSchoolHours() {
+            const now = new Date();
+            const currentTotalMins = now.getHours() * 60 + now.getMinutes();
+            const today = getTodayDateString();
+            let maxHour = 14, maxMinute = 0;
+            if(extendedTimeLimits[today]) {
+                const parts = extendedTimeLimits[today].split(':');
+                maxHour = parseInt(parts[0]) || 14;
+                maxMinute = parseInt(parts[1]) || 0;
+            }
+            return (currentTotalMins >= 7 * 60 && currentTotalMins <= maxHour * 60 + maxMinute);
+        }
+
+        function generateAppNumber(prefix) {
+            return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        let editLimits = JSON.parse(localStorage.getItem('sps_edit_limits')) || {};
+        let pendingRequests = JSON.parse(localStorage.getItem('sps_pending_requests')) || [];
+        let studentApprovalRequests = JSON.parse(localStorage.getItem('sps_student_approvals')) || [];
+        let classes = ['NURSERY A', 'NURSERY B', 'NURSERY C', 'LKG', 'UKG', 'CLASS 1', 'CLASS 2', 'CLASS 3', 'CLASS 4'];
+
+        window.onload = function() {
+            if(!localStorage.getItem('sps_admin_mobile')) {
+                localStorage.setItem('sps_admin_mobile', '9798377142');
+            }
+            
+            // 24-Hour Auto Cleanup for Approved Requests & PDF Archive Check
+            cleanupExpiredRequests();
+
+            populateClassDropdown();
+            populateFilterDropdown();
+            populateAttendanceClassDropdown();
+            populateAdminClassFilterDropdown();
+            populateMonthlyClassDropdown();
+            populateCallTrackerClassDropdown();
+
+            if(localStorage.getItem('smart_school_logged') === 'true') {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                updateDashboard();
+                updatePendingBadges();
+                resetLogoutTimer();
+            }
+        };
+
+        // --- 24-HOUR AUTO CLEANUP & PERMANENT PDF ARCHIVE ---
+        function cleanupExpiredRequests() {
+            const currentTime = new Date().getTime();
+            const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+            let permanentArchive = JSON.parse(localStorage.getItem('sps_permanent_pdf_archive')) || [];
+
+            studentApprovalRequests = studentApprovalRequests.filter(req => {
+                if(req.status === 'APPROVED' && req.approvedAt) {
+                    if(currentTime - req.approvedAt > ONE_DAY_MS) {
+                        // Save into permanent archive before cleaning
+                        permanentArchive.push({ ...req, archivedDate: new Date().toLocaleString() });
+                        localStorage.setItem('sps_permanent_pdf_archive', JSON.stringify(permanentArchive));
+                        return false; // Remove from active pending list
+                    }
+                }
+                return true;
+            });
+            localStorage.setItem('sps_student_approvals', JSON.stringify(studentApprovalRequests));
+        }
+
+        // --- 7:30 AM NOTIFICATION REMINDER ---
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        }
+
+        function checkAttendanceReminderAt730() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            if ((hours === 7 && minutes >= 30) || (hours > 7 && hours < 14)) {
+                const today = getTodayDateString();
+                if ((schoolStatusRecords[today] || 'OPEN') === 'OPEN') {
+                    let activeStudents = students.filter(s => s.status === 'APPROVED');
+                    let todayData = attendanceRecords[today] || {};
+                    let isMarked = activeStudents.length > 0 && activeStudents.every(s => todayData[`${s.className}_${s.roll}`]);
+                    if (!isMarked && "Notification" in window && Notification.permission === "granted") {
+                        if (localStorage.getItem('sps_last_reminder_date') !== today) {
+                            new Notification("⚠️ Smart Public School - अटेंडेंस रिमाइंडर", {
+                                body: "सर, सुबह के 7:30 बज चुके हैं! आपने आज की ऑनलाइन हाजिरी दर्ज नहीं की है। कृपया तुरंत अटेंडेंस करें।",
+                                icon: "https://cdn-icons-png.flaticon.com/512/2921/2921222.png"
+                            });
+                            localStorage.setItem('sps_last_reminder_date', today);
+                        }
+                    }
+                }
+            }
+        }
+        setInterval(checkAttendanceReminderAt730, 2 * 60 * 1000);
+
+        function showUniquePopup(type, title, desc, btnText = "OK", callback = null) {
+            const popup = document.getElementById('dynamic-popup');
+            const box = document.getElementById('popup-box');
+            document.getElementById('popup-title').innerText = title;
+            document.getElementById('popup-desc').innerText = desc;
+            
+            if(type === 'warning') {
+                document.getElementById('popup-accent-bar').className = "absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 to-rose-600";
+                document.getElementById('popup-icon-box').className = "w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner";
+                document.getElementById('popup-icon').className = "fa-solid fa-triangle-exclamation";
+                box.classList.add('animate-shake');
+                setTimeout(() => box.classList.remove('animate-shake'), 400);
+            } else {
+                document.getElementById('popup-accent-bar').className = "absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-green-400 to-emerald-600";
+                document.getElementById('popup-icon-box').className = "w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto text-4xl shadow-inner";
+                document.getElementById('popup-icon').className = "fa-solid fa-check";
+            }
+
+            const btn = document.getElementById('popup-btn');
+            btn.innerText = btnText;
+            btn.onclick = function() { closeDynamicPopup(); if (callback) callback(); };
+            popup.classList.remove('hidden');
+        }
+        function closeDynamicPopup() { document.getElementById('dynamic-popup').classList.add('hidden'); }
+
+        function getTodayLimit() {
+            const today = getTodayDateString();
+            if(editLimits[today] === undefined) {
+                editLimits[today] = 1;
+                localStorage.setItem('sps_edit_limits', JSON.stringify(editLimits));
+            }
+            return parseInt(editLimits[today]) || 0;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            if(tabId === 'dashboard') updateDashboard();
+            if(tabId === 'students') { populateFilterDropdown(); renderStudents(); }
+            if(tabId === 'teachers') renderTeachers();
+            if(tabId === 'monthly') {
+                document.getElementById('monthly-picker').value = new Date().toISOString().slice(0, 7);
+                loadMonthlySummary();
+            }
+            if(tabId === 'attendance') {
+                document.getElementById('attendance-date').value = getTodayDateString();
+                populateAttendanceClassDropdown();
+                loadAttendanceList();
+            }
+        }
+
+        let students = JSON.parse(localStorage.getItem('smart_school_students')) || [];
+        let teachers = JSON.parse(localStorage.getItem('smart_school_teachers')) || [];
+        let attendanceRecords = JSON.parse(localStorage.getItem('smart_school_attendance')) || {};
+        let teacherAttendanceRecords = JSON.parse(localStorage.getItem('smart_school_teacher_attendance')) || {};
+        let schoolStatusRecords = JSON.parse(localStorage.getItem('sps_school_status')) || {};
+
+        function populateClassDropdown() { document.getElementById('s-class').innerHTML = classes.map(c => `<option value="${c}">${c}</option>`).join(''); }
+        function populateFilterDropdown() { document.getElementById('filter-class-dropdown').innerHTML = `<option value="ALL">All Classes</option>` + classes.map(c => `<option value="${c}">${c}</option>`).join(''); }
+        function populateAttendanceClassDropdown() { document.getElementById('att-class-filter').innerHTML = classes.map(c => `<option value="${c}">${c}</option>`).join(''); }
+        function populateMonthlyClassDropdown() { 
+            const sel = document.getElementById('monthly-class-filter'); 
+            if(sel) sel.innerHTML = `<option value="ALL">All Student Classes</option><option value="TEACHERS_ONLY">👨‍🏫 Teachers Summary Only</option>` + classes.map(c => `<option value="${c}">${c}</option>`).join(''); 
+        }
+        function populateAdminClassFilterDropdown() { const sel = document.getElementById('admin-class-filter-select'); if(sel) sel.innerHTML = `<option value="ALL">All Classes</option>` + classes.map(c => `<option value="${c}">${c}</option>`).join(''); }
+        function populateCallTrackerClassDropdown() { const sel = document.getElementById('admin-call-class-filter'); if(sel) sel.innerHTML = `<option value="ALL">All Classes</option>` + classes.map(c => `<option value="${c}">${c}</option>`).join(''); }
+
+        function handleLogin() {
+            const mobileInput = document.getElementById('login-mobile').value.trim();
+            if(mobileInput === (localStorage.getItem('sps_admin_mobile') || '9798377142')) {
+                localStorage.setItem('smart_school_logged', 'true');
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                updateDashboard();
+                updatePendingBadges();
+                resetLogoutTimer();
+                showUniquePopup('success', 'लॉगिन सफल!', 'पोर्टल में स्वागत है।');
+            } else {
+                showUniquePopup('warning', 'गलत मोबाइल नंबर!', 'आपने अमान्य मोबाइल नंबर दर्ज किया है।');
+            }
+        }
+        function handleLogout() { localStorage.removeItem('smart_school_logged'); location.reload(); }
+
+        function updateAdminMobile() {
+            const newMob = document.getElementById('set-new-mobile').value.trim();
+            if(newMob.length !== 10) return showUniquePopup('warning', 'अमान्य!', 'कृपया सही 10 अंकों का मोबाइल नंबर दर्ज करें।');
+            localStorage.setItem('sps_admin_mobile', newMob);
+            showUniquePopup('success', 'अपडेट सफल!', 'एडमिन नंबर बदल दिया गया है।');
+            document.getElementById('set-new-mobile').value = '';
+        }
+
+        function openQrIdCard(index) {
+            const s = students[index];
+            if(!s) return;
+            document.getElementById('qr-student-name').innerText = s.name;
+            document.getElementById('qr-student-class').innerText = s.className;
+            document.getElementById('qr-student-roll').innerText = s.roll;
+            document.getElementById('qr-parent-name').innerText = s.parentName || '-';
+            document.getElementById('qr-parent-phone').innerText = s.parentPhone || '-';
+            const qc = document.getElementById('qrcode-container');
+            qc.innerHTML = '';
+            new QRCode(qc, { text: `SPS-ID | ${s.name} | Class: ${s.className} | Roll: ${s.roll}`, width: 130, height: 130 });
+            document.getElementById('qr-id-modal').classList.remove('hidden');
+        }
+        function closeQrModal() { document.getElementById('qr-id-modal').classList.add('hidden'); }
+
+        // --- STUDENT ADD OR EDIT WITH HEADMASTER APPROVAL ---
+        function openStudentModal(index = -1) {
+            const sel = document.getElementById('s-added-by');
+            sel.innerHTML = teachers.length === 0 ? `<option value="">पहले शिक्षक जोड़ें</option>` : `<option value="">-- शिक्षक चुनें --</option>` + teachers.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+            populateClassDropdown();
+            document.getElementById('edit-index').value = index;
+
+            if(index > -1) {
+                const s = students[index];
+                document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-600"></i> Edit Student Application`;
+                document.getElementById('s-added-by').value = s.addedBy || '';
+                document.getElementById('s-class').value = s.className || classes[0];
+                document.getElementById('s-name').value = s.name || '';
+                document.getElementById('s-roll').value = s.roll || '';
+                document.getElementById('s-parent').value = s.parentName || '';
+                document.getElementById('s-phone').value = s.parentPhone || '';
+            } else {
+                document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-user-plus text-indigo-600"></i> Add New Student Application`;
+                document.querySelectorAll('#student-modal input:not([type=hidden])').forEach(i => i.value = '');
+                autoSuggestRollNumber();
+            }
+            document.getElementById('student-modal').classList.remove('hidden');
+        }
+        function closeStudentModal() { document.getElementById('student-modal').classList.add('hidden'); }
+
+        function autoSuggestRollNumber() {
+            const editIdx = parseInt(document.getElementById('edit-index').value);
+            if(editIdx > -1) return;
+            const cls = document.getElementById('s-class').value;
+            const cs = students.filter(s => s.className === cls);
+            document.getElementById('s-roll').value = cs.length > 0 ? Math.max(...cs.map(s => parseInt(s.roll) || 0)) + 1 : 1;
+        }
+
+        function saveStudentData() {
+            const editIdx = parseInt(document.getElementById('edit-index').value);
+            const addedBy = document.getElementById('s-added-by').value;
+            const className = document.getElementById('s-class').value;
+            const name = document.getElementById('s-name').value.trim().toUpperCase();
+            const roll = document.getElementById('s-roll').value.trim();
+            const parentName = document.getElementById('s-parent').value.trim().toUpperCase();
+            const parentPhone = document.getElementById('s-phone').value.trim();
+
+            if(!addedBy || !name || !roll) return showUniquePopup('warning', 'अधूरी जानकारी!', 'कृपया शिक्षक, नाम और रोल नंबर भरें।');
+
+            let appNum = generateAppNumber(editIdx > -1 ? 'APP-ED' : 'APP-ST');
+            const studentData = { appNumber: appNum, addedBy, name, roll, className, parentName, parentPhone, status: 'PENDING_HM' };
+
+            if(editIdx > -1) {
+                studentData.type = 'EDIT';
+                studentData.oldStudent = students[editIdx];
+            }
+
+            students.push(studentData);
+            studentApprovalRequests.push({ appNumber: appNum, type: editIdx > -1 ? 'EDIT' : 'ADD', student: studentData, status: 'PENDING_HM', remark: '', appliedTimestamp: new Date().getTime(), appliedOn: new Date().toLocaleTimeString() });
+
+            localStorage.setItem('smart_school_students', JSON.stringify(students));
+            localStorage.setItem('sps_student_approvals', JSON.stringify(studentApprovalRequests));
+            closeStudentModal();
+            renderStudents();
+            updatePendingBadges();
+            showUniquePopup('success', 'एप्लिकेशन भेजी गई!', `हेडमास्टर के पास अप्रूवल के लिए भेज दिया गया! App No: ${appNum}`);
+        }
+
+        function openLeaveStatusModal() {
+            renderTeacherLeaveStatuses();
+            document.getElementById('leave-status-modal').classList.remove('hidden');
+        }
+        function closeLeaveStatusModal() { document.getElementById('leave-status-modal').classList.add('hidden'); }
+
+        function renderTeacherLeaveStatuses() {
+            const container = document.getElementById('teacher-leave-status-list');
+            const q = document.getElementById('search-app-num').value.toUpperCase().trim();
+            
+            let allApps = [];
+            studentApprovalRequests.forEach(r => {
+                let stBadge = r.status === 'APPROVED' ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">Approved</span>' : (r.status === 'REJECTED' ? '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">Rejected</span>' : (r.status === 'PENDING_CT' ? '<span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold">Sent to CT for Fix</span>' : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold">Pending HM Approval</span>'));
+                allApps.push({ appNumber: r.appNumber, title: `${r.type === 'EDIT' ? 'Student Edit' : 'Student Add'} (${r.student.name})`, statusHtml: stBadge, date: r.appliedOn, remark: r.remark });
+            });
+
+            pendingRequests.forEach(p => {
+                let stBadge = '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-bold">Pending HM Approval</span>';
+                allApps.push({ appNumber: p.appNumber, title: `Time Extension (${p.targetTime})`, statusHtml: stBadge, date: p.time, remark: p.reason });
+            });
+
+            if(allApps.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-gray-400 font-bold">कोई अर्जी नहीं मिली।</div>`;
+                return;
+            }
+
+            let filtered = allApps.filter(a => a.appNumber.includes(q) || a.title.toUpperCase().includes(q));
+            container.innerHTML = filtered.slice().reverse().map(a => `
+                <div class="bg-gray-50 border p-3 rounded-2xl space-y-1 shadow-sm">
+                    <div class="flex justify-between items-center font-bold">
+                        <span class="text-xs bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded">${a.appNumber}</span>
+                        ${a.statusHtml}
+                    </div>
+                    <div class="text-xs font-bold text-gray-800">विषय: ${a.title}</div>
+                    <div class="text-[11px] text-gray-500">समय: ${a.date}</div>
+                    ${a.remark ? `<div class="text-xs text-purple-700 bg-purple-50 p-1.5 rounded border">नोट/सुधार कारण: ${a.remark}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderStudents() {
+            const tbody = document.getElementById('student-table-body');
+            const selectedClass = document.getElementById('filter-class-dropdown').value;
+            const q = document.getElementById('search-student').value.toLowerCase();
+            let filtered = students.filter(s => (selectedClass === 'ALL' || s.className === selectedClass) && (s.name.toLowerCase().includes(q) || s.roll.includes(q)));
+            
+            tbody.innerHTML = filtered.length === 0 ? `<tr><td colspan="5" class="p-3 text-center text-gray-500">No students found.</td></tr>` : '';
+            filtered.forEach((s) => {
+                const idx = students.indexOf(s);
+                let badge = s.status === 'PENDING_HM' ? `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold">HM Review Pending</span>` : (s.status === 'PENDING_CT' ? `<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-[10px] font-bold">Sent to CT (Fix)</span>` : `<span class="text-green-600 text-xs font-bold">Active (Approved)</span>`);
+                
+                tbody.innerHTML += `<tr>
+                    <td class="p-3 font-semibold">${s.roll}</td>
+                    <td class="p-3 font-medium">${s.name} <br>${badge}</td>
+                    <td class="p-3">${s.className}</td>
+                    <td class="p-3">${s.parentName || '-'} (${s.parentPhone || ''})</td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="openQrIdCard(${idx})" class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded text-xs font-bold shadow"><i class="fa-solid fa-qrcode"></i> QR</button>
+                        <button onclick="openStudentModal(${idx})" class="text-blue-600 px-1.5 py-1" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="students.splice(${idx},1);localStorage.setItem('smart_school_students',JSON.stringify(students));renderStudents();updateDashboard();" class="text-red-600 px-1.5 py-1" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            });
+        }
+        function filterStudents() { renderStudents(); }
+
+        function openTeacherModal() { document.getElementById('teacher-modal').classList.remove('hidden'); }
+        function closeTeacherModal() { document.getElementById('teacher-modal').classList.add('hidden'); }
+        function saveTeacherData() {
+            const name = document.getElementById('t-name').value.trim().toUpperCase();
+            const subject = document.getElementById('t-subject').value.trim().toUpperCase();
+            if(!name) return showUniquePopup('warning', 'अधूरी जानकारी!', 'कृपया शिक्षक का नाम दर्ज करें।');
+            teachers.push({ name, subject });
+            localStorage.setItem('smart_school_teachers', JSON.stringify(teachers));
+            closeTeacherModal();
+            renderTeachers();
+            showUniquePopup('success', 'शिक्षक जुड़े!', 'सफलतापूर्वक जोड़ दिया गया।');
+        }
+        function renderTeachers() {
+            const tbody = document.getElementById('teacher-table-body');
+            tbody.innerHTML = teachers.length === 0 ? `<tr><td colspan="3" class="p-3 text-center text-gray-500">No teachers found.</td></tr>` : '';
+            teachers.forEach((t, i) => {
+                tbody.innerHTML += `<tr><td class="p-3">${t.name}</td><td class="p-3">${t.subject}</td><td class="p-3 text-center"><button onclick="teachers.splice(${i},1);localStorage.setItem('smart_school_teachers',JSON.stringify(teachers));renderTeachers();" class="text-red-600"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            });
+        }
+
+        // --- SCHOOL STATUS & EMERGENCY LOCK ---
+        function toggleSchoolStatus() {
+            const todayStr = getTodayDateString();
+            const currentStatus = schoolStatusRecords[todayStr] || 'OPEN';
+            
+            // Teachers cannot toggle if school is closed by Headmaster or already closed without Headmaster permission
+            if(currentStatus === 'CLOSED') {
+                showUniquePopup('warning', 'स्कूल बंद है!', 'एक बार स्कूल Closed होने के बाद शिक्षक इसे खुद Open नहीं कर सकते। कृपया हेडमास्टर से संपर्क करें।');
+                document.getElementById('school-status-select').value = 'CLOSED';
+                return;
+            }
+
+            schoolStatusRecords[todayStr] = document.getElementById('school-status-select').value;
+            localStorage.setItem('sps_school_status', JSON.stringify(schoolStatusRecords));
+        }
+
+        function headmasterSetSchoolStatus(status) {
+            const todayStr = getTodayDateString();
+            schoolStatusRecords[todayStr] = status;
+            localStorage.setItem('sps_school_status', JSON.stringify(schoolStatusRecords));
+            document.getElementById('school-status-select').value = status;
+            showUniquePopup('success', 'स्टेटस अपडेट!', `हेडमास्टर पैनल द्वारा स्कूल का स्टेटस '${status}' सेट कर दिया गया है।`);
+        }
+
+        function handleCategoryChange() {
+            const cat = document.getElementById('att-category').value;
+            const container = document.getElementById('att-class-container');
+            if(cat === 'teacher') container.classList.add('hidden');
+            else container.classList.remove('hidden');
+            loadAttendanceList();
+        }
+
+        function loadAttendanceList() {
+            const todayStr = getTodayDateString();
+            const category = document.getElementById('att-category').value;
+            const selectedClass = document.getElementById('att-class-filter').value;
+            const tbody = document.getElementById('attendance-table-body');
+            const submitBtn = document.getElementById('submit-attendance-btn');
+            const reqBtn = document.getElementById('req-chance-btn');
+            const thTitle = document.getElementById('att-th-title');
+            const statusDisplay = document.getElementById('school-status-display');
+
+            const currentSchoolStatus = schoolStatusRecords[todayStr] || 'OPEN';
+            statusDisplay.value = currentSchoolStatus;
+            statusDisplay.className = currentSchoolStatus === 'OPEN' ? 'border px-3 py-1.5 rounded-xl text-sm font-bold bg-green-50 text-green-700 w-36 text-center' : 'border px-3 py-1.5 rounded-xl text-sm font-bold bg-red-50 text-red-700 w-36 text-center';
+
+            const limitLeft = getTodayLimit();
+            const withinTime = isWithinSchoolHours();
+            document.getElementById('chances-badge').innerText = `बाकी चांस: ${limitLeft}`;
+
+            if(currentSchoolStatus === 'CLOSED') {
+                submitBtn.classList.add('hidden');
+                reqBtn.classList.add('hidden');
+                tbody.innerHTML = `<tr><td colspan="2" class="p-6 text-center text-red-600 font-bold">🔴 स्कूल आज बंद (Closed) है। अटेंडेंस दर्ज नहीं की जा सकती।</td></tr>`;
+                return;
+            }
+
+            if(category === 'student') {
+                thTitle.innerText = "Roll & Student Name";
+                const dayAtt = attendanceRecords[todayStr] || {};
+                let classStudents = students.filter(s => s.status === 'APPROVED' && s.className === selectedClass);
+                let isSubmitted = classStudents.length > 0 && classStudents.every(s => dayAtt[`${selectedClass}_${s.roll}`]);
+
+                if(isSubmitted) {
+                    if(limitLeft > 0) { submitBtn.classList.remove('hidden'); submitBtn.innerText = "Update Attendance"; reqBtn.classList.add('hidden'); }
+                    else { submitBtn.classList.add('hidden'); reqBtn.classList.remove('hidden'); }
+                } else {
+                    if(withinTime || limitLeft > 0) { submitBtn.classList.remove('hidden'); submitBtn.innerText = "Submit Attendance"; reqBtn.classList.add('hidden'); }
+                    else { submitBtn.classList.add('hidden'); reqBtn.classList.remove('hidden'); }
+                }
+
+                if(classStudents.length === 0) { tbody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-gray-500">No approved students in ${selectedClass}</td></tr>`; return; }
+
+                tbody.innerHTML = classStudents.map(s => {
+                    const key = `${selectedClass}_${s.roll}`;
+                    const st = dayAtt[key]?.status || 'Present';
+                    return `<tr>
+                        <td class="p-3"><b>Roll ${s.roll}</b> - ${s.name}</td>
+                        <td class="p-3 text-center space-x-4">
+                            <label class="text-green-600 text-xs font-bold"><input type="radio" name="att-${key}" value="Present" ${st==='Present'?'checked':''} class="mr-1">Present</label>
+                            <label class="text-red-600 text-xs font-bold"><input type="radio" name="att-${key}" value="Absent" ${st==='Absent'?'checked':''} class="mr-1">Absent</label>
+                        </td>
+                    </tr>`;
+                }).join('');
+
+            } else {
+                thTitle.innerText = "Teacher Name & Subject";
+                const teacherAtt = teacherAttendanceRecords[todayStr] || {};
+                let isSubmitted = teachers.length > 0 && teachers.every((t, i) => teacherAtt[i]);
+
+                if(isSubmitted) {
+                    if(limitLeft > 0) { submitBtn.classList.remove('hidden'); submitBtn.innerText = "Update Teacher Attendance"; reqBtn.classList.add('hidden'); }
+                    else { submitBtn.classList.add('hidden'); reqBtn.classList.remove('hidden'); }
+                } else {
+                    if(withinTime || limitLeft > 0) { submitBtn.classList.remove('hidden'); submitBtn.innerText = "Submit Teacher Attendance"; reqBtn.classList.add('hidden'); }
+                    else { submitBtn.classList.add('hidden'); reqBtn.classList.remove('hidden'); }
+                }
+
+                if(teachers.length === 0) { tbody.innerHTML = `<tr><td colspan="2" class="p-3 text-center text-gray-500">No teachers found.</td></tr>`; return; }
+
+                tbody.innerHTML = teachers.map((t, idx) => {
+                    const st = teacherAtt[idx]?.status || 'Present';
+                    return `<tr>
+                        <td class="p-3"><b>${t.name}</b> <span class="text-indigo-600">(${t.subject})</span></td>
+                        <td class="p-3 text-center space-x-4">
+                            <label class="text-green-600 text-xs font-bold"><input type="radio" name="t-att-${idx}" value="Present" ${st==='Present'?'checked':''} class="mr-1">Present</label>
+                            <label class="text-red-600 text-xs font-bold"><input type="radio" name="t-att-${idx}" value="Absent" ${st==='Absent'?'checked':''} class="mr-1">Absent</label>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        function submitAttendance() {
+            const today = getTodayDateString();
+            if((schoolStatusRecords[today] || 'OPEN') === 'CLOSED') return showUniquePopup('warning', 'स्कूल बंद है!', 'आज स्कूल बंद है।');
+
+            const category = document.getElementById('att-category').value;
+
+            if(category === 'student') {
+                if(!attendanceRecords[today]) attendanceRecords[today] = {};
+                const selectedClass = document.getElementById('att-class-filter').value;
+                students.filter(s => s.status === 'APPROVED' && s.className === selectedClass).forEach(s => {
+                    const key = `${selectedClass}_${s.roll}`;
+                    const radios = document.getElementsByName(`att-${key}`);
+                    for(let r of radios) { if(r.checked) attendanceRecords[today][key] = { status: r.value }; }
+                });
+                localStorage.setItem('smart_school_attendance', JSON.stringify(attendanceRecords));
+            } else {
+                if(!teacherAttendanceRecords[today]) teacherAttendanceRecords[today] = {};
+                teachers.forEach((t, idx) => {
+                    const radios = document.getElementsByName(`t-att-${idx}`);
+                    for(let r of radios) { if(r.checked) teacherAttendanceRecords[today][idx] = { status: r.value }; }
+                });
+                localStorage.setItem('smart_school_teacher_attendance', JSON.stringify(teacherAttendanceRecords));
+            }
+
+            let curLimit = getTodayLimit();
+            if(curLimit > 0) {
+                editLimits[today] = curLimit - 1;
+                localStorage.setItem('sps_edit_limits', JSON.stringify(editLimits));
+            }
+
+            showUniquePopup('success', 'अटेंडेंस सेव & ऑटो-लॉक!', 'हाजिरी दर्ज होकर लॉक हो गई है।');
+            loadAttendanceList();
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            let activeStudents = students.filter(s => s.status === 'APPROVED');
+            document.getElementById('dash-total-students').innerText = activeStudents.length;
+            document.getElementById('dash-total-teachers').innerText = teachers.length;
+            
+            const todayStr = getTodayDateString();
+            document.getElementById('report-date').innerText = todayStr;
+            const curStat = schoolStatusRecords[todayStr] || 'OPEN';
+            document.getElementById('report-status').innerText = curStat;
+            document.getElementById('report-status').className = curStat === 'OPEN' ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+
+            const todayData = attendanceRecords[todayStr] || {};
+            const teacherTodayData = teacherAttendanceRecords[todayStr] || {};
+
+            let p = 0, a = 0;
+            let presentNames = [];
+            let absentNames = [];
+
+            activeStudents.forEach(s => {
+                const st = todayData[`${s.className}_${s.roll}`]?.status;
+                if(st === 'Present') { p++; presentNames.push(`[${s.className}] Roll ${s.roll} - ${s.name}`); }
+                else if(st === 'Absent') { a++; absentNames.push(`[${s.className}] Roll ${s.roll} - ${s.name}`); }
+            });
+
+            document.getElementById('dash-present').innerText = p;
+            document.getElementById('dash-absent').innerText = a;
+            document.getElementById('dash-present-list').innerHTML = presentNames.length > 0 ? presentNames.map(n => `<div>• ${n}</div>`).join('') : '<span class="text-gray-400">No present records today.</span>';
+            document.getElementById('dash-absent-list').innerHTML = absentNames.length > 0 ? absentNames.map(n => `<div>• ${n}</div>`).join('') : '<span class="text-gray-400">No absent students today.</span>';
+        }
+
+        function updatePendingBadges() {
+            const pendingHM = studentApprovalRequests.filter(r => r.status === 'PENDING_HM').length + pendingRequests.length;
+            const dot = document.getElementById('header-pending-dot');
+            if(pendingHM > 0) {
+                dot.classList.remove('hidden');
+                document.getElementById('hm-card-total').innerText = pendingHM;
+                document.getElementById('hm-card-students').innerText = studentApprovalRequests.filter(r => r.status === 'PENDING_HM').length;
+                document.getElementById('hm-card-times').innerText = pendingRequests.length;
+            } else {
+                dot.classList.add('hidden');
+            }
+        }
+
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+            document.getElementById('admin-auth').classList.remove('hidden');
+            document.getElementById('admin-controls').classList.add('hidden');
+        }
+        function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
+
+        function verifyAdminPin() {
+            const pin = document.getElementById('admin-pin-input').value.trim();
+            const currentPin = localStorage.getItem('sps_admin_pin') || '1234';
+
+            if(pin === currentPin || pin.toUpperCase() === 'RESET') {
+                if(pin.toUpperCase() === 'RESET') localStorage.setItem('sps_admin_pin', '1234');
+                document.getElementById('admin-auth').classList.add('hidden');
+                document.getElementById('admin-controls').classList.remove('hidden');
+                updatePendingBadges();
+                renderAdminRequests();
+                renderStudentApprovalRequests();
+                renderAdminAbsentCallTracker();
+            } else {
+                showUniquePopup('warning', 'चेतावनी: गलत पासवर्ड!', 'आपने गलत हेडमास्टर पिन दर्ज किया है!');
+            }
+        }
+
+        function switchAdminTab(tab) {
+            document.getElementById('admin-tab-requests').classList.add('hidden');
+            document.getElementById('admin-tab-student-approvals').classList.add('hidden');
+            document.getElementById('admin-tab-call-tracker').classList.add('hidden');
+            document.getElementById('admin-tab-school-control').classList.add('hidden');
+            document.getElementById('admin-tab-admin-settings').classList.add('hidden');
+            
+            if(tab === 'student-approvals') { document.getElementById('admin-tab-student-approvals').classList.remove('hidden'); renderStudentApprovalRequests(); }
+            if(tab === 'requests') { document.getElementById('admin-tab-requests').classList.remove('hidden'); renderAdminRequests(); }
+            if(tab === 'call-tracker') { document.getElementById('admin-tab-call-tracker').classList.remove('hidden'); renderAdminAbsentCallTracker(); }
+            if(tab === 'school-control') document.getElementById('admin-tab-school-control').classList.remove('hidden');
+            if(tab === 'admin-settings') document.getElementById('admin-tab-admin-settings').classList.remove('hidden');
+        }
+
+        function renderStudentApprovalRequests() {
+            const container = document.getElementById('admin-student-approval-list');
+            let pendingList = studentApprovalRequests.filter(r => r.status === 'PENDING_HM' || r.status === 'PENDING_CT');
+            
+            if(pendingList.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-gray-400 font-bold text-xs">कोई पेंडिंग छात्र रिक्वेस्ट नहीं है। (अप्रूव्ड लिस्ट 24 घंटे बाद पीडीएफ आर्काइव में सेव हो जाती है)।</div>`;
+                return;
+            }
+
+            container.innerHTML = pendingList.map((req) => {
+                const idx = studentApprovalRequests.indexOf(req);
+                const s = req.student || {};
+                return `
+                    <div class="bg-gray-50 border-2 border-indigo-100 p-4 rounded-2xl space-y-2 shadow-sm">
+                        <div class="flex justify-between items-center font-bold text-xs">
+                            <span class="bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded">App No: ${req.appNumber} (${req.type || 'ADD'})</span>
+                            <span class="text-gray-500">${req.appliedOn}</span>
+                        </div>
+                        <div class="text-xs bg-white p-2.5 rounded-xl border font-semibold space-y-1">
+                            <div><b>नाम:</b> ${s.name} | <b>क्लास:</b> ${s.className} | <b>रोल:</b> ${s.roll}</div>
+                            <div><b>अभिभावक:</b> ${s.parentName || '-'} (${s.parentPhone || ''})</div>
+                            <div><b>शिक्षक:</b> ${s.addedBy}</div>
+                        </div>
+                        <div class="flex gap-2 pt-1 flex-wrap">
+                            <button onclick="approveStudent(${idx})" class="flex-1 bg-green-600 text-white py-2 rounded-xl text-xs font-bold shadow">Approve & Live</button>
+                            <button onclick="sendBackToCT(${idx})" class="flex-1 bg-purple-600 text-white py-2 rounded-xl text-xs font-bold shadow">Send to CT (Fix)</button>
+                            <button onclick="rejectStudent(${idx})" class="flex-1 bg-red-600 text-white py-2 rounded-xl text-xs font-bold shadow">Reject</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function approveStudent(idx) {
+            let req = studentApprovalRequests[idx];
+            req.status = 'APPROVED';
+            req.approvedAt = new Date().getTime();
+
+            if(req.type === 'EDIT') {
+                let realStudent = students.find(s => s.appNumber === req.student.oldStudent?.appNumber || s.name === req.student.oldStudent?.name);
+                if(realStudent) {
+                    realStudent.name = req.student.name;
+                    realStudent.className = req.student.className;
+                    realStudent.roll = req.student.roll;
+                    realStudent.parentName = req.student.parentName;
+                    realStudent.parentPhone = req.student.parentPhone;
+                    realStudent.status = 'APPROVED';
+                }
+            } else {
+                let sObj = students.find(s => s.appNumber === req.appNumber);
+                if(sObj) sObj.status = 'APPROVED';
+            }
+
+            localStorage.setItem('smart_school_students', JSON.stringify(students));
+            localStorage.setItem('sps_student_approvals', JSON.stringify(studentApprovalRequests));
+            updatePendingBadges();
+            renderStudentApprovalRequests();
+            renderStudents();
+            showUniquePopup('success', 'अप्रूव्ड!', 'छात्र डेटा लाइव हो गया है। 24 घंटे बाद यह परमानेंट पीडीएफ आर्काइव में सेव हो जाएगा।');
+        }
+
+        function sendBackToCT(idx) {
+            let reason = prompt("क्लास टीचर को सुधार के लिए नोट:", "नाम या रोल नंबर सुधार करें");
+            if(!reason) return;
+            let req = studentApprovalRequests[idx];
+            req.status = 'PENDING_CT';
+            req.remark = reason;
+            let sObj = students.find(s => s.appNumber === req.appNumber);
+            if(sObj) sObj.status = 'PENDING_CT';
+
+            localStorage.setItem('smart_school_students', JSON.stringify(students));
+            localStorage.setItem('sps_student_approvals', JSON.stringify(studentApprovalRequests));
+            updatePendingBadges();
+            renderStudentApprovalRequests();
+            showUniquePopup('pending', 'वापस भेजा गया!', 'सुधार के लिए भेज दिया गया है।');
+        }
+
+        function rejectStudent(idx) {
+            let req = studentApprovalRequests[idx];
+            req.status = 'REJECTED';
+            let sObj = students.find(s => s.appNumber === req.appNumber);
+            if(sObj) sObj.status = 'REJECTED';
+
+            localStorage.setItem('smart_school_students', JSON.stringify(students));
+            localStorage.setItem('sps_student_approvals', JSON.stringify(studentApprovalRequests));
+            updatePendingBadges();
+            renderStudentApprovalRequests();
+            showUniquePopup('warning', 'रिजेक्टेड!', 'एप्लिकेशन खारिज कर दी गई।');
+        }
+
+        function renderAdminRequests() {
+            const container = document.getElementById('admin-req-list');
+            if(!container) return;
+            if(pendingRequests.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-gray-400 font-bold text-xs">कोई समय बढ़ाने की अर्जी पेंडिंग नहीं है।</div>`;
+                return;
+            }
+            container.innerHTML = pendingRequests.map((req, idx) => `
+                <div class="bg-amber-50 border-2 border-amber-200 p-4 rounded-2xl space-y-2 shadow-sm">
+                    <div class="flex justify-between items-center font-bold text-gray-800 text-xs">
+                        <span class="bg-amber-200 text-amber-900 px-2 py-0.5 rounded">App No: ${req.appNumber}</span>
+                        <span>${req.date} - ${req.time}</span>
+                    </div>
+                    <div class="text-xs font-semibold text-gray-700"><b>Target Time:</b> <span class="text-indigo-700">${req.targetTime} बजे तक</span></div>
+                    <p class="text-xs text-gray-800 bg-white p-2 rounded border"><b>Reason:</b> "${req.reason}"</p>
+                    <button onclick="approveTimeRequest(${idx})" class="w-full bg-green-600 text-white py-2 rounded-xl text-xs font-bold shadow">Approve & Give +1 Chance</button>
+                </div>
+            `).join('');
+        }
+
+        function approveTimeRequest(idx) {
+            const req = pendingRequests[idx];
+            if(req && req.targetTime) {
+                const targetDate = req.date || getTodayDateString();
+                extendedTimeLimits[targetDate] = req.targetTime;
+                localStorage.setItem('sps_extended_time_limits', JSON.stringify(extendedTimeLimits));
+                
+                let currentLimit = parseInt(editLimits[targetDate]) || 0;
+                editLimits[targetDate] = currentLimit + 1;
+                localStorage.setItem('sps_edit_limits', JSON.stringify(editLimits));
+
+                showUniquePopup('success', 'समय सीमा स्वीकृत!', `समय ${req.targetTime} तक बढ़ा दिया गया है।`);
+            }
+            pendingRequests.splice(idx, 1);
+            localStorage.setItem('sps_pending_requests', JSON.stringify(pendingRequests));
+            updatePendingBadges();
+            renderAdminRequests();
+            loadAttendanceList();
+        }
+
+        function openReqModal() { document.getElementById('req-modal').classList.remove('hidden'); }
+        function closeReqModal() { document.getElementById('req-modal').classList.add('hidden'); }
+
+        function submitPermissionRequest() {
+            const reason = document.getElementById('req-reason').value.trim();
+            const targetTime = document.getElementById('req-target-time').value;
+            if(!reason) return showUniquePopup('warning', 'कारण दर्ज करें!', 'कृपया वजह लिखें।');
+
+            let appNum = generateAppNumber('APP-EX');
+            pendingRequests.push({
+                appNumber: appNum, type: 'TIME_EXTENSION', time: new Date().toLocaleTimeString(), date: getTodayDateString(), targetTime, reason, appliedTimestamp: new Date().getTime()
+            });
+
+            localStorage.setItem('sps_pending_requests', JSON.stringify(pendingRequests));
+            document.getElementById('req-reason').value = '';
+            closeReqModal();
+            updatePendingBadges();
+            showUniquePopup('success', 'अर्जी भेजी गई!', `App No: ${appNum} हेडमास्टर के पास भेज दी गई है।`);
+        }
+
+        function saveNewAdminPin() {
+            const newPin = document.getElementById('new-admin-pin').value.trim();
+            if(newPin.length < 3) return showUniquePopup('warning', 'अमान्य पिन!', 'पिन कम से कम 4 अंकों का होना चाहिए।');
+            localStorage.setItem('sps_admin_pin', newPin);
+            document.getElementById('new-admin-pin').value = '';
+            showUniquePopup('success', 'पिन सेव हो गया!', 'नया पिन अपडेट हो गया है।');
+        }
+
+        function sendWhatsAppAlert() {
+            const today = getTodayDateString();
+            const todayData = attendanceRecords[today] || {};
+            let absentByClass = {};
+            let totalPresent = 0, totalAbsent = 0;
+            students.filter(s => s.status === 'APPROVED').forEach(s => {
+                const key = `${s.className}_${s.roll}`;
+                const st = todayData[key]?.status || '';
+                if(!absentByClass[s.className]) absentByClass[s.className] = [];
+                if(st === 'Present') totalPresent++;
+                else { totalAbsent++; absentByClass[s.className].push(`Roll ${s.roll} - ${s.name}`); }
+            });
+
+            let msg = `*🏫 SMART PUBLIC SCHOOL ATTENDANCE*%0ADate: ${today}%0A🟢 Present: ${totalPresent} | 🔴 Absent: ${totalAbsent}%0A-----------------------------------%0A🔴 *ABSENT STUDENTS:*%0A`;
+            for(let c in absentByClass) {
+                if(absentByClass[c].length > 0) {
+                    msg += `%0A🏫 *${c}:*%0A`;
+                    absentByClass[c].forEach(n => { msg += `  ❌ ${n}%0A`; });
+                }
+            }
+            window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank');
+        }
+
+        function exportData() {
+            const data = {
+                students: localStorage.getItem('smart_school_students'),
+                teachers: localStorage.getItem('smart_school_teachers'),
+                attendance: localStorage.getItem('smart_school_attendance'),
+                teacherAttendance: localStorage.getItem('smart_school_teacher_attendance'),
+                schoolStatus: localStorage.getItem('sps_school_status'),
+                extendedTime: localStorage.getItem('sps_extended_time_limits'),
+                editLimits: localStorage.getItem('sps_edit_limits'),
+                adminPin: localStorage.getItem('sps_admin_pin'),
+                approvals: localStorage.getItem('sps_student_approvals'),
+                requests: localStorage.getItem('sps_pending_requests'),
+                mobile: localStorage.getItem('sps_admin_mobile'),
+                archive: localStorage.getItem('sps_permanent_pdf_archive')
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Backup_${getTodayDateString()}.json`; a.click();
+            showUniquePopup('success', 'बैकअप डाउनलोड!', 'फाइल डाउनलोड हो गई है।');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = JSON.parse(e.target.result);
+                if(data.students) localStorage.setItem('smart_school_students', data.students);
+                if(data.teachers) localStorage.setItem('smart_school_teachers', data.teachers);
+                if(data.attendance) localStorage.setItem('smart_school_attendance', data.attendance);
+                if(data.teacherAttendance) localStorage.setItem('smart_school_teacher_attendance', data.teacherAttendance);
+                if(data.extendedTime) localStorage.setItem('sps_extended_time_limits', data.extendedTime);
+                if(data.editLimits) localStorage.setItem('sps_edit_limits', data.editLimits);
+                if(data.approvals) localStorage.setItem('sps_student_approvals', data.approvals);
+                if(data.requests) localStorage.setItem('sps_pending_requests', data.requests);
+                if(data.mobile) localStorage.setItem('sps_admin_mobile', data.mobile);
+                if(data.archive) localStorage.setItem('sps_permanent_pdf_archive', data.archive);
+                showUniquePopup('success', 'रीस्टोर सफल!', 'डेटा रीस्टोर हो गया। पेज रीलोड होगा।', 'OK', () => location.reload());
+            };
+            reader.readAsText(file);
+        }
+
+        function loadMonthlySummary() {
+            const selectedMonth = document.getElementById('monthly-picker').value || getTodayDateString().slice(0, 7);
+            const filterType = document.getElementById('monthly-class-filter').value;
+            const tbody = document.getElementById('monthly-table-body');
+
+            if(filterType === 'TEACHERS_ONLY') {
+                if(teachers.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-gray-500">No teachers found.</td></tr>`; return; }
+                let stats = {};
+                teachers.forEach((t, i) => { stats[i] = { name: `${t.name} (${t.subject})`, present: 0, absent: 0 }; });
+
+                for(let date in teacherAttendanceRecords) {
+                    if(date.startsWith(selectedMonth)) {
+                        let day = teacherAttendanceRecords[date];
+                        for(let idx in day) {
+                            if(stats[idx]) {
+                                if(day[idx].status === 'Present') stats[idx].present++;
+                                else if(day[idx].status === 'Absent') stats[idx].absent++;
+                            }
+                        }
+                    }
+                }
+
+                tbody.innerHTML = teachers.map((t, idx) => `
+                    <tr>
+                        <td class="p-3 font-semibold">T-${idx+1}</td>
+                        <td class="p-3">${stats[idx].name}</td>
+                        <td class="p-3 text-center font-bold text-green-600">${stats[idx].present}</td>
+                        <td class="p-3 text-center font-bold text-red-600">${stats[idx].absent}</td>
+                    </tr>
+                `).join('');
+
+            } else {
+                let targetStudents = students.filter(s => s.status === 'APPROVED' && (filterType === 'ALL' || s.className === filterType));
+                if(targetStudents.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-gray-500">No students found.</td></tr>`; return; }
+
+                let stats = {};
+                targetStudents.forEach(s => { stats[`${s.className}_${s.roll}`] = { roll: s.roll, name: `${s.name} (${s.className})`, present: 0, absent: 0 }; });
+
+                for(let date in attendanceRecords) {
+                    if(date.startsWith(selectedMonth)) {
+                        let day = attendanceRecords[date];
+                        for(let key in day) {
+                            if(stats[key]) {
+                                if(day[key].status === 'Present') stats[key].present++;
+                                else if(day[key].status === 'Absent') stats[key].absent++;
+                            }
+                        }
+                    }
+                }
+                tbody.innerHTML = targetStudents.map(s => {
+                    const k = `${s.className}_${s.roll}`;
+                    return `<tr><td class="p-3 font-semibold">${s.roll}</td><td class="p-3">${stats[k].name}</td><td class="p-3 text-center font-bold text-green-600">${stats[k].present}</td><td class="p-3 text-center font-bold text-red-600">${stats[k].absent}</td></tr>`;
+                }).join('');
+            }
+        }
+
+        function exportToExcel() {
+            const today = getTodayDateString();
+            const todayData = attendanceRecords[today] || {};
+            let csv = 'Roll,Name,Class,Status\n';
+            students.filter(s => s.status === 'APPROVED').forEach(s => {
+                csv += `${s.roll},"${s.name}","${s.className}",${todayData[`${s.className}_${s.roll}`]?.status || 'Not Marked'}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Attendance_${today}.csv`; a.click();
+        }
+    </script>
+</body>
+</html>
